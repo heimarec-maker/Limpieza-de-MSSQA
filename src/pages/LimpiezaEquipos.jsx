@@ -38,7 +38,7 @@ export default function LimpiezaEquipos() {
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [querySerial, setQuerySerial] = useState('')
-  const [queryMac, setQueryMac] = useState('') // Nuevo estado para la MAC en el panel de consulta
+
   const [queryLoading, setQueryLoading] = useState(false)
   const [queryResult, setQueryResult] = useState(null)
   const [history, setHistory] = useState([])
@@ -79,13 +79,8 @@ export default function LimpiezaEquipos() {
       }
 
       try {
-        const res = await ejecutarLimpieza(serial, getUsername())
+        const res = await ejecutarLimpieza(serial, mac, getUsername())
         setResult(res)
-        // TODO: La función ejecutarLimpieza en limpiezaDbService.js necesita ser actualizada para aceptar 'mac'
-        // y el backend en server/index.js también debe recibir y validar la MAC.
-        // Por ahora, el frontend envía la MAC, pero el backend aún no la usa para la validación estricta.
-        // Una vez que el backend esté actualizado, esta línea funcionará como se espera.
-        // const res = await ejecutarLimpieza(serial, mac, getUsername())
 
         setHistory(prev => [{
           input: mac ? `${serial} | ${mac}` : serial,
@@ -100,6 +95,9 @@ export default function LimpiezaEquipos() {
           detalles: `Serial: ${serial}${mac ? ` | MAC: ${mac}` : ''}`,
           resultado: mapResultType(res.type),
         })
+
+        // Actualizar el historial desde la base de datos para ver los últimos cambios
+        cargarMisLogs()
       } catch {
         setResult({ type: 'error', message: t('Error al conectar con el servidor. ¿Está corriendo npm run server?') })
       }
@@ -124,7 +122,7 @@ export default function LimpiezaEquipos() {
         }
       }).filter(eq => eq.serial && eq.mac) // Filtramos líneas que no tengan ambos
 
-      if (serials.length === 0) {
+      if (equiposParaLimpiar.length === 0) {
         setResult({ type: 'error', message: t('No se detectaron seriales válidos.') })
         setLoading(false)
         return
@@ -140,7 +138,7 @@ export default function LimpiezaEquipos() {
           else errores++
           
           batchHistory.push({
-            input: srl,
+            input: `${equipoData.serial} | ${equipoData.mac}`,
             status: mapResultType(res.type),
             message: res.message,
             timestamp: new Date().toISOString()
@@ -167,7 +165,7 @@ export default function LimpiezaEquipos() {
         usuario: getUsername(),
         accion: 'Limpieza',
         modulo: 'Limpieza Equipos (Masiva)',
-        detalles: `Lote de ${serials.length} equipo(s) — ${exitosos} OK, ${errores} errores`,
+        detalles: `Lote de ${equiposParaLimpiar.length} equipo(s) — ${exitosos} OK, ${errores} errores`,
         resultado: mapResultType(tipo),
       })
 
@@ -180,8 +178,8 @@ export default function LimpiezaEquipos() {
 
   const handleConsultar = async (e) => {
     e.preventDefault()
-    if (!querySerial || !queryMac) { // Ambos son obligatorios para la consulta
-      setQueryResult({ type: 'error', message: t('Tanto el Serial como la MAC son obligatorios para la consulta.') })
+    if (!querySerial) {
+      setQueryResult({ type: 'error', message: t('El Serial es obligatorio para la consulta.') })
       return
     }
     setQueryLoading(true)
@@ -189,8 +187,8 @@ export default function LimpiezaEquipos() {
     setResult(null)
 
     try {
-      const res = await consultarEquipo(querySerial, queryMac) // Pasar MAC
-      setQueryResult(res.data) // El backend ahora devuelve { ok: true, data: equipo }
+      const res = await consultarEquipo(querySerial)
+      setQueryResult(res) // Para mantener type y message en la UI
       addActivityLog({
         usuario: getUsername(),
         accion: 'Consulta',
@@ -284,27 +282,20 @@ export default function LimpiezaEquipos() {
         {/* PANEL DE CONSULTA */}
         <div className="limpieza-card glass-card">
           <h2><Search size={20} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />{t('Consulta de Estado')}</h2>
-          <form onSubmit={handleConsultar} className="form-row" style={{ alignItems: 'flex-end'}}>
-            <div className="form-group" style={{ marginBottom: 0 }}>
-              <label>{t('Serial del Equipo')}</label>
-              <input 
-                type="text" 
-                placeholder={t('Serial del Equipo')} 
-                value={querySerial}
-                onChange={e => setQuerySerial(e.target.value)}
-              />
+          <form onSubmit={handleConsultar}>
+            <div className="form-row">
+              <div className="form-group" style={{ width: '100%' }}>
+                <label>{t('Serial del Equipo')}</label>
+                <input 
+                  type="text" 
+                  placeholder={t('Serial del Equipo')} 
+                  value={querySerial}
+                  onChange={e => setQuerySerial(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}> {/* Nuevo campo para la MAC */}
-              <label>{t('Dirección MAC')}</label>
-              <input 
-                type="text" 
-                placeholder={t('Dirección MAC')} 
-                value={queryMac}
-                onChange={e => setQueryMac(e.target.value)}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={queryLoading}>
-              {t('Consultar Estado')}
+            <button type="submit" className="btn btn-primary" disabled={queryLoading} style={{ width: '100%' }}>
+              {queryLoading ? t('Consultando...') : t('Consultar Estado')}
             </button>
           </form>
 
@@ -374,7 +365,9 @@ export default function LimpiezaEquipos() {
               <div className="op-history-list">
                 {dbLogs.slice(0, 50).map(log => {
                   const rc = RESULT_ICON[log.resultado] || { Icon: AlertTriangle, cls: 'warning' }
-                  const fecha = new Date(log.ejecutado_at)
+                  // Asegurar que se puede parsear si el formato es YYYY-MM-DD HH:mm:ss o ISO
+                  const dateStr = log.ejecutado_at.includes('T') ? log.ejecutado_at : log.ejecutado_at.replace(' ', 'T')
+                  const fecha = new Date(dateStr)
                   return (
                     <div key={log.log_id} className="op-history-row">
                       <span className={`op-history-badge result-box ${rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>

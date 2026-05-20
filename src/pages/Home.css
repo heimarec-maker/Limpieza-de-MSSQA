@@ -1,41 +1,94 @@
+/* ═══════════════════════════════════════════════
+   HOME — Premium Dashboard v2
+   ═══════════════════════════════════════════════ */
+
+/* ── Hero Section ── */
 .hero {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 5rem 2rem;
+    overflow: hidden;
     background:
         radial-gradient(ellipse 70% 60% at 50% -10%, rgba(0, 112, 243, 0.18) 0%, transparent 60%),
         radial-gradient(ellipse 40% 40% at 80% 90%, rgba(0, 194, 255, 0.08) 0%, transparent 60%);
 }
 
+/* ── Animated background orbs ── */
+.hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.35;
+    pointer-events: none;
+    animation: orbFloat 12s ease-in-out infinite;
+}
+
+.hero-orb--1 {
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(0, 112, 243, 0.3), transparent 70%);
+    top: -120px;
+    left: -100px;
+    animation-delay: 0s;
+}
+
+.hero-orb--2 {
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(0, 194, 255, 0.25), transparent 70%);
+    bottom: -80px;
+    right: -60px;
+    animation-delay: -6s;
+}
+
+@keyframes orbFloat {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33%      { transform: translate(30px, -20px) scale(1.08); }
+    66%      { transform: translate(-20px, 15px) scale(0.95); }
+}
+
+/* ── Hero Content ── */
 .hero-content {
+    position: relative;
+    z-index: 1;
     max-width: 1100px;
     width: 100%;
     text-align: center;
 }
 
+/* ── Badge ── */
 .hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    background: rgba(0, 112, 243, 0.15);
-    border: 1px solid rgba(0, 112, 243, 0.35);
+    background: rgba(0, 112, 243, 0.12);
+    border: 1px solid rgba(0, 112, 243, 0.30);
     color: var(--clr-accent);
-    font-size: 0.8rem;
+    font-size: 0.78rem;
     font-weight: 600;
-    letter-spacing: 1px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
-    padding: 0.35rem 1rem;
+    padding: 0.35rem 1.1rem;
     border-radius: 999px;
     margin-bottom: 1.5rem;
+    backdrop-filter: blur(8px);
+    animation: fadeSlideDown 0.5s ease-out both;
 }
 
 .hero-badge--admin {
-    background: rgba(168, 85, 247, 0.15);
-    border-color: rgba(168, 85, 247, 0.35);
+    background: rgba(168, 85, 247, 0.12);
+    border-color: rgba(168, 85, 247, 0.30);
     color: #c084fc;
 }
 
+@keyframes fadeSlideDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Title ── */
 .hero-title {
     font-size: clamp(2.8rem, 6vw, 5rem);
     font-weight: 800;
@@ -46,100 +99,204 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    animation: fadeSlideDown 0.6s ease-out 0.1s both;
 }
 
+/* ── Subtitle ── */
 .hero-subtitle {
     font-size: 1.1rem;
     color: var(--clr-muted);
     max-width: 540px;
     margin: 0 auto 3.5rem;
     line-height: 1.7;
+    animation: fadeSlideDown 0.6s ease-out 0.2s both;
 }
 
-/* Cards */
+
+/* ═══════════════════════════════════════════════
+   CARDS GRID
+   ═══════════════════════════════════════════════ */
 .hero-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
     margin-top: 1rem;
 }
 
+/* Admin grid: 3 columns, centradas */
+.hero-cards--admin {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* ═══════════════════════════════════════════════
+   CARD — Premium Glass Design
+   ═══════════════════════════════════════════════ */
 .card {
-    padding: 2.5rem 2rem;
+    position: relative;
+    padding: 2.2rem 1.8rem 1.8rem;
     text-align: center;
     cursor: pointer;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
     text-decoration: none;
+    overflow: hidden;
+    border-radius: 20px;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* Staggered entry animation */
+    animation: cardEntrance 0.55s ease-out var(--card-delay, 0ms) both;
 }
 
-.card:hover {
+@keyframes cardEntrance {
+    from {
+        opacity: 0;
+        transform: translateY(28px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ── Shimmer effect ── */
+.card-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 40%,
+        rgba(255, 255, 255, 0.03) 45%,
+        rgba(255, 255, 255, 0.06) 50%,
+        rgba(255, 255, 255, 0.03) 55%,
+        transparent 60%
+    );
+    background-size: 250% 100%;
+    background-position: 200% 0;
+    transition: background-position 0.8s ease;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+.card:hover .card-shimmer {
+    background-position: -100% 0;
+}
+
+/* ── Accent-colored cards ── */
+.card--accent {
+    border: 1px solid var(--accent-border, rgba(255,255,255,0.06));
+    background: var(--accent-gradient, none);
+}
+
+.card--accent:hover {
     transform: translateY(-8px) scale(1.02);
-    border-color: rgba(0, 194, 255, 0.4);
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6), 0 0 20px rgba(0, 112, 243, 0.2);
+    border-color: var(--accent-border);
+    box-shadow:
+        0 24px 48px -12px rgba(0, 0, 0, 0.55),
+        0 0 28px -4px var(--accent-glow);
 }
 
-/* ── Admin card accent overrides ── */
+/* ── Admin card extra glow ── */
 .card--admin:hover {
-    border-color: var(--admin-border);
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6), 0 0 24px var(--admin-glow);
+    box-shadow:
+        0 24px 48px -12px rgba(0, 0, 0, 0.55),
+        0 0 32px -2px var(--accent-glow),
+        inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
-.card--admin:hover .card-icon-wrapper {
-    background: var(--admin-color) !important;
-    color: #fff !important;
-    box-shadow: 0 0 20px var(--admin-glow);
-}
 
+/* ═══════════════════════════════════════════════
+   CARD ICON
+   ═══════════════════════════════════════════════ */
 .card-icon-wrapper {
-    width: 60px;
-    height: 60px;
+    width: 58px;
+    height: 58px;
     border-radius: 16px;
-    background: rgba(0, 112, 243, 0.1);
+    background: var(--accent-bg, rgba(0, 112, 243, 0.1));
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--clr-accent);
-    margin-bottom: 0.5rem;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(0, 194, 255, 0.1);
+    color: var(--accent-color, var(--clr-accent));
+    margin-bottom: 0.35rem;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    border: 1px solid var(--accent-border, rgba(0, 194, 255, 0.1));
 }
 
 .card:hover .card-icon-wrapper {
-    background: var(--clr-accent);
+    background: var(--accent-color, var(--clr-accent));
     color: #fff;
-    transform: rotate(-5deg);
-    box-shadow: 0 0 20px rgba(0, 194, 255, 0.4);
+    transform: rotate(-5deg) scale(1.08);
+    box-shadow: 0 0 22px var(--accent-glow, rgba(0, 194, 255, 0.4));
+    border-color: transparent;
 }
 
+
+/* ═══════════════════════════════════════════════
+   CARD TYPOGRAPHY
+   ═══════════════════════════════════════════════ */
 .card h3 {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     font-weight: 700;
     color: #fff;
     margin: 0;
+    transition: color 0.3s ease;
+}
+
+.card:hover h3 {
+    color: var(--accent-color, #fff);
 }
 
 .card p {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--clr-muted);
     line-height: 1.6;
     margin: 0;
 }
 
+
+/* ═══════════════════════════════════════════════
+   CARD ARROW / CTA
+   ═══════════════════════════════════════════════ */
 .card-arrow {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
     margin-top: auto;
-    color: var(--clr-accent);
+    padding-top: 0.5rem;
+    color: var(--accent-color, var(--clr-accent));
     opacity: 0;
-    transform: translateX(-10px);
-    transition: all 0.3s ease;
+    transform: translateY(6px);
+    transition: all 0.35s ease;
+}
+
+.card-arrow-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
 }
 
 .card:hover .card-arrow {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0);
+}
+
+
+/* ═══════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+    .hero-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .hero-cards--admin {
+        grid-template-columns: repeat(2, 1fr);
+        max-width: 100%;
+    }
 }
 
 @media (max-width: 768px) {
@@ -153,10 +310,14 @@
         font-size: 1rem;
         margin-bottom: 2.5rem;
     }
-    .hero-cards {
+    .hero-cards,
+    .hero-cards--admin {
         grid-template-columns: 1fr;
     }
     .card {
         padding: 2rem 1.5rem;
+    }
+    .hero-orb {
+        display: none;
     }
 }

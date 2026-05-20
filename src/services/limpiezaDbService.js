@@ -35,29 +35,31 @@ export async function consultarEquipo(serial) {
 }
 
 // ─── OP 2+3+4: Ejecutar limpieza completa ────────────────────────────────────
-export async function ejecutarLimpieza(serial, usuario = 'Sistema') {
+export async function ejecutarLimpieza(serial, mac, usuario = 'Sistema') {
+  const timestamp = new Date().toISOString();
+
   const res = await fetch(
     `${API}/limpieza/${encodeURIComponent(serial.toUpperCase())}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario }),
+      body: JSON.stringify({ usuario, mac, timestamp }),
     }
   )
 
   const json = await res.json()
 
   if (!res.ok) {
-    return { type: 'error', message: json.mensaje }
+    return { type: 'error', message: json.message || json.mensaje }
   }
 
   if (json.advertencia) {
-    return { type: 'warning', message: json.mensaje }
+    return { type: 'warning', message: json.message || json.mensaje }
   }
 
   return {
     type: 'success',
-    message: json.mensaje,
+    message: json.message || json.mensaje,
     detalle: json.detalle,
   }
 }

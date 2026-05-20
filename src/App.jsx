@@ -13,6 +13,9 @@ import Perfil from './pages/Perfil'
 import AdminPanel from './pages/AdminPanel'
 import AdminUsuarios from './pages/AdminUsuarios'
 import AdminLimpiezas from './pages/AdminLimpiezas'
+import ManualUsuario from './pages/ManualUsuario'
+import PoliticasSeguridad from './pages/PoliticasSeguridad'
+import SoporteTecnico from './pages/SoporteTecnico'
 import ProtectedRoute from './components/ProtectedRoute'
 
 function AppContent() {
@@ -33,6 +36,9 @@ function AppContent() {
           <Route path="/limpieza-smw" element={<LimpiezaSmw />} />
           <Route path="/limpieza-mss" element={<LimpiezaMss />} />
           <Route path="/perfil" element={<Perfil />} />
+          <Route path="/manual" element={<ManualUsuario />} />
+          <Route path="/seguridad" element={<PoliticasSeguridad />} />
+          <Route path="/soporte" element={<SoporteTecnico />} />
           
           {/* Rutas de Administrador */}
           <Route path="/admin/actividad" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />

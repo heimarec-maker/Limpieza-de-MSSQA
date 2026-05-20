@@ -34,11 +34,11 @@ app.use(express.json())
 // Funciones internas de BD
 // ─────────────────────────────────────────────────────────────────────────────
 
-function registrarLog(serial, usuario, etapa, resultado, detalle) {
+function registrarLog(serial, usuario, etapa, resultado, detalle, timestamp = null) {
   db.prepare(`
-    INSERT INTO limpieza_log (serial_nbr, usuario, etapa, resultado, detalle)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(serial, usuario, etapa, resultado, detalle)
+    INSERT INTO limpieza_log (serial_nbr, usuario, etapa, resultado, detalle, ejecutado_at)
+    VALUES (?, ?, ?, ?, ?, COALESCE(?, datetime('now', 'localtime')))
+  `).run(serial, usuario, etapa, resultado, detalle, timestamp)
 }
 
 /** OP 1 — Validar estado del equipo por serial */
@@ -64,47 +64,47 @@ function validarEquipo(serial, mac) {
 }
 
 /** OP 2 — BORRADO_EQUIPOS: desvincula el equipo (cambia estado a LIBRE) */
-function ejecutarBorrado(equipmentId, serial, usuario) {
+function ejecutarBorrado(equipmentId, serial, usuario, timestamp = null) {
   const tx = db.transaction(() => {
     db.prepare(`
       UPDATE equip_ca_value
-      SET    ca_value   = 'RETIRADO', updated_at = datetime('now')
+      SET    ca_value   = 'RETIRADO', updated_at = COALESCE(?, datetime('now', 'localtime'))
       WHERE  equipment_id  = ? AND ca_value_label = 'Estado CPE'
-    `).run(equipmentId)
+    `).run(timestamp, equipmentId)
 
     db.prepare(`
       UPDATE equipment
-      SET    estado = 'LIBRE', updated_at = datetime('now')
+      SET    estado = 'LIBRE', updated_at = COALESCE(?, datetime('now', 'localtime'))
       WHERE  equipment_id = ?
-    `).run(equipmentId)
+    `).run(timestamp, equipmentId)
   })
   tx()
-  registrarLog(serial, usuario, 'BORRADO', 'ÉXITO', 'Equipo desvinculado correctamente')
+  registrarLog(serial, usuario, 'BORRADO', 'ÉXITO', 'Equipo desvinculado correctamente', timestamp)
 }
 
 /** OP 3 — Marcar serial en serv_item_value con '*' */
-function limpiarServItem(serial, usuario) {
+function limpiarServItem(serial, usuario, timestamp = null) {
   const r = db.prepare(`
     UPDATE serv_item_value
-    SET    valid_value = '*', updated_at = datetime('now')
+    SET    valid_value = '*', updated_at = COALESCE(?, datetime('now', 'localtime'))
     WHERE  value_label = 'Serial' AND valid_value = ?
-  `).run(serial)
+  `).run(timestamp, serial)
   registrarLog(serial, usuario, 'SERV_ITEM',
     r.changes > 0 ? 'ÉXITO' : 'NO_ENCONTRADO',
-    `${r.changes} fila(s) actualizadas en serv_item_value`)
+    `${r.changes} fila(s) actualizadas en serv_item_value`, timestamp)
   return r.changes
 }
 
 /** OP 4 — Marcar serial en serv_req_si_value con '*' */
-function limpiarServReq(serial, usuario) {
+function limpiarServReq(serial, usuario, timestamp = null) {
   const r = db.prepare(`
     UPDATE serv_req_si_value
-    SET    valid_value = '*', updated_at = datetime('now')
+    SET    valid_value = '*', updated_at = COALESCE(?, datetime('now', 'localtime'))
     WHERE  value_label = 'Serial' AND valid_value = ?
-  `).run(serial)
+  `).run(timestamp, serial)
   registrarLog(serial, usuario, 'SERV_REQ',
     r.changes > 0 ? 'ÉXITO' : 'NO_ENCONTRADO',
-    `${r.changes} fila(s) actualizadas en serv_req_si_value`)
+    `${r.changes} fila(s) actualizadas en serv_req_si_value`, timestamp)
   return r.changes
 }
 
@@ -135,23 +135,14 @@ app.get('/api/equipos', (_req, res) => {
 /** GET /api/equipos/:serial — OP1: Validar estado de un equipo */
 app.get('/api/equipos/:serial', (req, res) => {
   const { serial } = req.params
-  const { mac } = req.query // La MAC se espera como query parameter
   const serialUp = serial.toUpperCase()
-  const macUp = mac ? mac.toUpperCase() : null
 
-  if (!macUp) {
-    return res.status(400).json({
-      ok: false,
-      mensaje: `Para consultar el estado, la MAC es obligatoria. Por favor, incluya 'mac' como query parameter.`
-    })
-  }
-
-  const equipo = validarEquipo(serialUp, macUp)
+  const equipo = validarEquipo(serialUp, null)
 
   if (!equipo) {
     return res.status(404).json({
       ok: false,
-      mensaje: `Serial "${serial}" con MAC "${mac}" no encontrado o no coincide en la base de datos.`
+      mensaje: `Serial "${serial}" no encontrado en la base de datos.`
     })
   }
 
@@ -161,12 +152,12 @@ app.get('/api/equipos/:serial', (req, res) => {
 /** POST /api/limpieza/:serial — OP2+3+4: Proceso completo con Serial Y MAC */
 app.post('/api/limpieza/:serial', (req, res) => {
   const { serial } = req.params
-  const { usuario, mac } = req.body // La MAC se espera en el cuerpo de la solicitud
+  const { usuario, mac, timestamp } = req.body // La MAC y timestamp se esperan en el cuerpo
   const serialUp = serial.toUpperCase()
   const macUp = mac ? mac.toUpperCase() : null
 
   if (!macUp) {
-    registrarLog(serialUp, usuario, 'VALIDACION', 'ERROR', 'MAC no proporcionada para la limpieza')
+    registrarLog(serialUp, usuario, 'VALIDACION', 'ERROR', 'MAC no proporcionada para la limpieza', timestamp)
     return res.status(400).json({
       ok: false,
       etapa: 'VALIDACION',
@@ -177,7 +168,7 @@ app.post('/api/limpieza/:serial', (req, res) => {
   // ── OP 1: Validar ──
   const equipo = validarEquipo(serialUp, macUp) // Validar con Serial y MAC
   if (!equipo) {
-    registrarLog(serialUp, usuario, 'VALIDACION', 'NO_ENCONTRADO', `Serial ${serialUp} con MAC ${macUp} no existe o no coincide en equipment`)
+    registrarLog(serialUp, usuario, 'VALIDACION', 'NO_ENCONTRADO', `Serial ${serialUp} con MAC ${macUp} no existe o no coincide en equipment`, timestamp)
     return res.status(404).json({
       ok: false,
       etapa: 'VALIDACION',
@@ -195,13 +186,13 @@ app.post('/api/limpieza/:serial', (req, res) => {
   }
 
   // ── OP 2: BORRADO_EQUIPOS ──
-  ejecutarBorrado(equipo.equipment_id, serialUp, usuario)
+  ejecutarBorrado(equipo.equipment_id, serialUp, usuario, timestamp)
 
   // ── OP 3: serv_item_value ──
-  const filasItem = limpiarServItem(serialUp, usuario)
+  const filasItem = limpiarServItem(serialUp, usuario, timestamp)
 
   // ── OP 4: serv_req_si_value ──
-  const filasReq = limpiarServReq(serialUp, usuario)
+  const filasReq = limpiarServReq(serialUp, usuario, timestamp)
 
   res.json({
     ok: true,

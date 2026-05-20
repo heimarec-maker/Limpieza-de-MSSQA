@@ -1,0 +1,444 @@
+/* ═══════════════════════════════════════════════════════
+   ManualUsuario.css — Estilos para la página del Manual
+   ═══════════════════════════════════════════════════════ */
+
+.manual-page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  display: flex;
+  gap: 2rem;
+}
+
+/* ── Sidebar: Tabla de Contenidos ── */
+.manual-toc {
+  position: sticky;
+  top: 100px;
+  align-self: flex-start;
+  width: 260px;
+  min-width: 220px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  padding: 1.5rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+  flex-shrink: 0;
+}
+
+.manual-toc::-webkit-scrollbar {
+  width: 4px;
+}
+.manual-toc::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.manual-toc h3 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--clr-accent, #00c2ff);
+  margin: 0 0 1rem 0;
+  font-weight: 700;
+}
+
+.manual-toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.manual-toc-list li a {
+  display: block;
+  padding: 0.45rem 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  line-height: 1.4;
+  border-left: 2px solid transparent;
+}
+
+.manual-toc-list li a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  border-left-color: var(--clr-accent, #00c2ff);
+}
+
+.manual-toc-list li a.active {
+  color: var(--clr-accent, #00c2ff);
+  background: rgba(0, 194, 255, 0.08);
+  border-left-color: var(--clr-accent, #00c2ff);
+  font-weight: 600;
+}
+
+/* ── Contenido principal ── */
+.manual-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Hero del Manual ── */
+.manual-hero {
+  text-align: center;
+  padding: 3rem 2rem;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0, 194, 255, 0.08), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 2.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.manual-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 30% 30%, rgba(0, 194, 255, 0.06), transparent 60%);
+  pointer-events: none;
+}
+
+.manual-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(0, 194, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.25rem;
+  color: var(--clr-accent, #00c2ff);
+}
+
+.manual-hero h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+.manual-hero-meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.82rem;
+}
+
+.manual-hero-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* ── Secciones ── */
+.manual-section {
+  margin-bottom: 2.5rem;
+  padding: 2rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  scroll-margin-top: 100px;
+  transition: border-color 0.3s ease;
+}
+
+.manual-section:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.manual-section h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.manual-section h2 .section-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(0, 194, 255, 0.12);
+  color: var(--clr-accent, #00c2ff);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.manual-section h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 1.75rem 0 0.75rem;
+}
+
+.manual-section h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 1.25rem 0 0.5rem;
+}
+
+.manual-section p {
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.8;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.manual-section ul,
+.manual-section ol {
+  color: rgba(255, 255, 255, 0.65);
+  padding-left: 1.25rem;
+  margin: 0 0 1rem;
+  line-height: 1.8;
+  font-size: 0.9rem;
+}
+
+.manual-section li {
+  margin-bottom: 0.35rem;
+}
+
+.manual-section strong {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+}
+
+.manual-section code {
+  background: rgba(0, 194, 255, 0.1);
+  color: var(--clr-accent, #00c2ff);
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+/* ── Tablas ── */
+.manual-table-wrap {
+  overflow-x: auto;
+  margin: 1rem 0;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.manual-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.manual-table thead {
+  background: rgba(0, 194, 255, 0.06);
+}
+
+.manual-table th {
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.manual-table td {
+  color: rgba(255, 255, 255, 0.6);
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  vertical-align: top;
+}
+
+.manual-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Bloques de código ── */
+.manual-code-block {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.82rem;
+  color: #a5f3fc;
+  line-height: 1.6;
+  white-space: pre;
+}
+
+/* ── Cajas de alerta (Note, Tip, Warning, Caution) ── */
+.manual-alert {
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.manual-alert svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.manual-alert.alert-note {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+.manual-alert.alert-note svg { color: #60a5fa; }
+
+.manual-alert.alert-tip {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+.manual-alert.alert-tip svg { color: #34d399; }
+
+.manual-alert.alert-important {
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+.manual-alert.alert-important svg { color: #c084fc; }
+
+.manual-alert.alert-warning {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+.manual-alert.alert-warning svg { color: #fbbf24; }
+
+.manual-alert.alert-caution {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+.manual-alert.alert-caution svg { color: #f87171; }
+
+/* ── Badges de estado ── */
+.manual-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.manual-badge.badge-done {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.manual-badge.badge-dev {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* ── Botón de volver arriba ── */
+.manual-back-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(0, 194, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 194, 255, 0.3);
+  color: var(--clr-accent, #00c2ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px);
+}
+
+.manual-back-top.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.manual-back-top:hover {
+  background: rgba(0, 194, 255, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 194, 255, 0.3);
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .manual-page {
+    flex-direction: column;
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .manual-toc {
+    position: relative;
+    top: 0;
+    width: 100%;
+    max-height: none;
+    order: -1;
+  }
+
+  .manual-hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .manual-section {
+    padding: 1.5rem 1.25rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .manual-hero {
+    padding: 2rem 1.25rem;
+  }
+
+  .manual-hero h1 {
+    font-size: 1.3rem;
+  }
+
+  .manual-hero-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .manual-section h2 {
+    font-size: 1.15rem;
+  }
+
+  .manual-table th,
+  .manual-table td {
+    padding: 0.5rem 0.65rem;
+    font-size: 0.78rem;
+  }
+}

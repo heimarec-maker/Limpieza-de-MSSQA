@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Monitor, PlusCircle, MapPin, ClipboardList, ArrowRight,
-  ShieldCheck, Activity, Users, FileBarChart, Settings, Database
+  ShieldCheck, Activity, Users, Sparkles
 } from 'lucide-react'
 import './Home.css'
 
@@ -13,28 +13,32 @@ const userCards = [
     title: 'Limpieza de equipos',
     desc: 'Gestión y limpieza del inventario de equipos.',
     path: '/limpieza-equipos',
+    accent: 'cyan',
   },
   {
     Icon: PlusCircle,
     title: 'Creación de equipos',
     desc: 'Registro y alta de nuevos equipos en el sistema.',
     path: '/creacion-equipos',
+    accent: 'blue',
   },
   {
     Icon: MapPin,
     title: 'Limpieza SMW',
     desc: 'Depuración y normalización de direcciones SMW.',
     path: '/limpieza-smw',
+    accent: 'teal',
   },
   {
     Icon: ClipboardList,
     title: 'Limpieza MSS',
     desc: 'Revisión y limpieza de órdenes del sistema MSS.',
     path: '/limpieza-mss',
+    accent: 'indigo',
   },
 ]
 
-/* ── Cards para administradores ── */
+/* ── Cards para administradores (sincronizadas con Navbar) ── */
 const adminCards = [
   {
     Icon: Activity,
@@ -44,34 +48,31 @@ const adminCards = [
     accent: 'purple',
   },
   {
+    Icon: Sparkles,
+    title: 'Historial Limpiezas',
+    desc: 'Historial detallado de todas las limpiezas de equipos realizadas.',
+    path: '/admin/limpiezas',
+    accent: 'rose',
+  },
+  {
     Icon: Users,
     title: 'Gestión de Usuarios',
     desc: 'Administración de cuentas, roles y permisos del sistema.',
     path: '/admin/usuarios',
     accent: 'blue',
   },
-  {
-    Icon: FileBarChart,
-    title: 'Reportes y Estadísticas',
-    desc: 'Métricas de rendimiento, tasas de éxito y errores por módulo.',
-    path: '/admin/reportes',
-    accent: 'emerald',
-  },
-  {
-    Icon: Database,
-    title: 'Respaldo de Datos',
-    desc: 'Exportación de registros y gestión de la integridad de datos.',
-    path: '/admin/respaldo',
-    accent: 'amber',
-  },
 ]
 
-/* ── Configuración de acentos para cards admin ── */
+/* ── Paleta de acentos premium ── */
 const accentMap = {
-  purple:  { bg: 'rgba(168, 85, 247, 0.10)', border: 'rgba(168, 85, 247, 0.25)', color: '#c084fc', glow: 'rgba(168, 85, 247, 0.35)' },
-  blue:    { bg: 'rgba(56, 189, 248, 0.10)', border: 'rgba(56, 189, 248, 0.25)', color: '#38bdf8', glow: 'rgba(56, 189, 248, 0.35)' },
-  emerald: { bg: 'rgba(52, 211, 153, 0.10)', border: 'rgba(52, 211, 153, 0.25)', color: '#34d399', glow: 'rgba(52, 211, 153, 0.35)' },
-  amber:   { bg: 'rgba(251, 191, 36, 0.10)', border: 'rgba(251, 191, 36, 0.25)', color: '#fbbf24', glow: 'rgba(251, 191, 36, 0.35)' },
+  /* User accents */
+  cyan:    { bg: 'rgba(6, 182, 212, 0.08)',   border: 'rgba(6, 182, 212, 0.22)',   color: '#22d3ee', glow: 'rgba(6, 182, 212, 0.30)',   gradient: 'linear-gradient(135deg, rgba(6, 182, 212, 0.15), rgba(6, 182, 212, 0.02))' },
+  blue:    { bg: 'rgba(59, 130, 246, 0.08)',   border: 'rgba(59, 130, 246, 0.22)',   color: '#60a5fa', glow: 'rgba(59, 130, 246, 0.30)',   gradient: 'linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.02))' },
+  teal:    { bg: 'rgba(20, 184, 166, 0.08)',   border: 'rgba(20, 184, 166, 0.22)',   color: '#2dd4bf', glow: 'rgba(20, 184, 166, 0.30)',   gradient: 'linear-gradient(135deg, rgba(20, 184, 166, 0.15), rgba(20, 184, 166, 0.02))' },
+  indigo:  { bg: 'rgba(99, 102, 241, 0.08)',   border: 'rgba(99, 102, 241, 0.22)',   color: '#818cf8', glow: 'rgba(99, 102, 241, 0.30)',   gradient: 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(99, 102, 241, 0.02))' },
+  /* Admin accents */
+  purple:  { bg: 'rgba(168, 85, 247, 0.08)',   border: 'rgba(168, 85, 247, 0.22)',   color: '#c084fc', glow: 'rgba(168, 85, 247, 0.30)',   gradient: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15), rgba(168, 85, 247, 0.02))' },
+  rose:    { bg: 'rgba(244, 63, 94, 0.08)',    border: 'rgba(244, 63, 94, 0.22)',    color: '#fb7185', glow: 'rgba(244, 63, 94, 0.30)',    gradient: 'linear-gradient(135deg, rgba(244, 63, 94, 0.15), rgba(244, 63, 94, 0.02))' },
 }
 
 export default function Home() {
@@ -86,6 +87,10 @@ export default function Home() {
 
   return (
     <section className="hero">
+      {/* Orbes de fondo animados */}
+      <div className="hero-orb hero-orb--1" />
+      <div className="hero-orb hero-orb--2" />
+
       <div className="hero-content">
         {/* ── Badge dinámico según rol ── */}
         {isAdmin ? (
@@ -106,34 +111,33 @@ export default function Home() {
             : t('Plataforma centralizada para la optimización y control de procesos técnicos ETB.')}
         </p>
 
-        <div className="hero-cards">
-          {cards.map((c) => {
+        <div className={`hero-cards ${isAdmin ? 'hero-cards--admin' : ''}`}>
+          {cards.map((c, i) => {
             const accent = c.accent ? accentMap[c.accent] : null
             return (
               <Link
                 to={c.path}
                 key={c.title}
-                className={`card glass-card ${c.accent ? 'card--admin' : ''}`}
-                style={accent ? {
-                  '--admin-bg': accent.bg,
-                  '--admin-border': accent.border,
-                  '--admin-color': accent.color,
-                  '--admin-glow': accent.glow,
-                } : undefined}
+                className={`card glass-card ${c.accent ? 'card--accent' : ''} ${isAdmin ? 'card--admin' : ''}`}
+                style={{
+                  '--accent-bg': accent?.bg,
+                  '--accent-border': accent?.border,
+                  '--accent-color': accent?.color,
+                  '--accent-glow': accent?.glow,
+                  '--accent-gradient': accent?.gradient,
+                  '--card-delay': `${i * 80}ms`,
+                }}
               >
-                <div
-                  className="card-icon-wrapper"
-                  style={accent ? {
-                    background: accent.bg,
-                    borderColor: accent.border,
-                    color: accent.color,
-                  } : undefined}
-                >
+                {/* Shimmer decorativo */}
+                <div className="card-shimmer" />
+
+                <div className="card-icon-wrapper">
                   <c.Icon size={24} />
                 </div>
                 <h3>{c.title}</h3>
                 <p>{c.desc}</p>
-                <div className="card-arrow" style={accent ? { color: accent.color } : undefined}>
+                <div className="card-arrow">
+                  <span className="card-arrow-label">{t('Acceder')}</span>
                   <ArrowRight size={16} />
                 </div>
               </Link>

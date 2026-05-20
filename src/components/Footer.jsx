@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck, FileText, HelpCircle, Mail, Phone, Network } from 'lucide-react'
 import './Footer.css'
@@ -8,9 +9,9 @@ export default function Footer() {
 
   // Definición de datos para iterar, facilitando el mantenimiento y la escalabilidad
   const quickLinks = [
-    { icon: HelpCircle, label: 'Soporte Técnico', href: '/soporte' },
-    { icon: FileText, label: 'Manual de Usuario', href: '/manual' },
-    { icon: ShieldCheck, label: 'Políticas de Seguridad', href: '/seguridad' }
+    { icon: HelpCircle, label: 'Soporte Técnico', href: '/soporte', isRouterLink: true },
+    { icon: FileText, label: 'Manual de Usuario', href: '/manual', isRouterLink: true },
+    { icon: ShieldCheck, label: 'Políticas de Seguridad', href: '/seguridad', isRouterLink: true }
   ]
 
   const contactLinks = [
@@ -50,10 +51,17 @@ export default function Footer() {
                 const Icon = link.icon;
                 return (
                   <li key={idx}>
-                    <a href={link.href}>
-                      <Icon size={16} strokeWidth={2.5} />
-                      {t(link.label)}
-                    </a>
+                    {link.isRouterLink ? (
+                      <Link to={link.href}>
+                        <Icon size={16} strokeWidth={2.5} />
+                        {t(link.label)}
+                      </Link>
+                    ) : (
+                      <a href={link.href}>
+                        <Icon size={16} strokeWidth={2.5} />
+                        {t(link.label)}
+                      </a>
+                    )}
                   </li>
                 )
               })}
