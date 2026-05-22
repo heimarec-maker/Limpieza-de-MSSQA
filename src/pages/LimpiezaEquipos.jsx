@@ -363,27 +363,55 @@ export default function LimpiezaEquipos() {
                 </p>
               </div>
               <div className="op-history-list">
-                {dbLogs.slice(0, 50).map(log => {
-                  const rc = RESULT_ICON[log.resultado] || { Icon: AlertTriangle, cls: 'warning' }
-                  // Asegurar que se puede parsear si el formato es YYYY-MM-DD HH:mm:ss o ISO
-                  const dateStr = log.ejecutado_at.includes('T') ? log.ejecutado_at : log.ejecutado_at.replace(' ', 'T')
-                  const fecha = new Date(dateStr)
-                  return (
-                    <div key={log.log_id} className="op-history-row">
-                      <span className={`op-history-badge result-box ${rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
-                        <rc.Icon size={12} />
-                        {log.resultado}
-                      </span>
-                      <span className="op-history-details">
-                        <strong style={{ color: 'var(--clr-accent)' }}>{log.serial_nbr}</strong>
-                        {' — '}{log.detalle || log.etapa}
-                      </span>
-                      <span className="op-history-time">
-                        {fecha.toLocaleDateString('es-CO', { day:'2-digit', month:'short' })} {fecha.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
-                      </span>
+                {(() => {
+                  const grouped = []
+                  dbLogs.forEach(log => {
+                    const rc = RESULT_ICON[log.resultado] || { Icon: AlertTriangle, cls: 'warning' }
+                    const dateStr = log.ejecutado_at.includes('T') ? log.ejecutado_at : log.ejecutado_at.replace(' ', 'T')
+                    const fecha = new Date(dateStr)
+                    
+                    const last = grouped.find(g => g.serial_nbr === log.serial_nbr && Math.abs(g.fecha - fecha) < 60000)
+                    if (last) {
+                      last.detalles.push(log.detalle || log.etapa)
+                      if (log.resultado === 'ÉXITO') last.exitos++
+                      last.total++
+                    } else {
+                      grouped.push({
+                        id: log.log_id,
+                        serial_nbr: log.serial_nbr,
+                        fecha: fecha,
+                        resultado: log.resultado,
+                        rc: rc,
+                        detalles: [log.detalle || log.etapa],
+                        exitos: log.resultado === 'ÉXITO' ? 1 : 0,
+                        total: 1
+                      })
+                    }
+                  })
+                  
+                  return grouped.slice(0, 50).map(group => (
+                    <div key={group.id} className="op-history-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem', padding: '0.8rem' }}>
+                      <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="op-history-details">
+                          <strong style={{ color: 'var(--clr-accent)', fontSize: '1.05rem' }}>{group.serial_nbr}</strong>
+                        </span>
+                        <span className={`op-history-badge result-box ${group.rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
+                          <group.rc.Icon size={12} />
+                          {group.exitos === group.total ? 'LIMPIEZA EXITOSA' : group.resultado}
+                        </span>
+                      </div>
+                      
+                      <div style={{ fontSize: '0.85rem', color: 'var(--clr-muted)', paddingLeft: '0.5rem', borderLeft: '2px solid var(--clr-border)' }}>
+                        {group.detalles.map((d, i) => <div key={i}>• {d}</div>)}
+                      </div>
+
+                      <div className="op-history-time" style={{ alignSelf: 'flex-end', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                        {group.fecha.toLocaleDateString('es-CO', { day:'2-digit', month:'short' })} {group.fecha.toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' })}
+                      </div>
                     </div>
-                  )
-                })}
+                  ))
+                })()}
+
               </div>
             </div>
           )}
