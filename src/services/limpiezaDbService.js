@@ -7,8 +7,9 @@
 const API = '/api'
 
 // ─── OP 1: Consultar estado de un equipo por serial ──────────────────────────
-export async function consultarEquipo(serial) {
-  const res = await fetch(`${API}/equipos/${encodeURIComponent(serial.toUpperCase())}`)
+export async function consultarEquipo(serial, mac = '') {
+  const url = `${API}/equipos/${encodeURIComponent(serial.toUpperCase())}?mac=${encodeURIComponent(mac.toUpperCase())}`
+  const res = await fetch(url)
   const json = await res.json()
 
   if (!res.ok) {

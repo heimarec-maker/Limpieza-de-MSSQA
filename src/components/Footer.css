@@ -1,10 +1,10 @@
 .footer {
+  flex-shrink: 0;
   position: relative;
   background: rgba(10, 15, 30, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  margin-top: auto;
   padding: 4rem 1.5rem 2rem;
   color: var(--clr-muted);
   font-size: 0.85rem;

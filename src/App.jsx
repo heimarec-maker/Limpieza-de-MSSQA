@@ -16,7 +16,16 @@ import AdminLimpiezas from './pages/AdminLimpiezas'
 import ManualUsuario from './pages/ManualUsuario'
 import PoliticasSeguridad from './pages/PoliticasSeguridad'
 import SoporteTecnico from './pages/SoporteTecnico'
+import { useEffect } from 'react'
 import ProtectedRoute from './components/ProtectedRoute'
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
 
 function AppContent() {
   const location = useLocation();
@@ -24,6 +33,7 @@ function AppContent() {
 
   return (
     <div className="app-wrapper">
+      <ScrollToTop />
       <div className="bg-orb orb-1"></div>
       <div className="bg-orb orb-2"></div>
       {!isLoginPage && <Navbar />}

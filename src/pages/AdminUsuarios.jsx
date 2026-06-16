@@ -1,25 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import SubPage from '../components/SubPage';
 import {
   Users, UserPlus, Search, Filter,
   Shield, CheckCircle, XCircle,
   Activity, Mail, Edit, Trash2, Download,
-  X, Save, Lock, Unlock, AlertTriangle, Briefcase
+  X, Save, Lock, Unlock, AlertTriangle, Briefcase, Loader
 } from 'lucide-react';
 import './AdminPanel.css';
 import { exportUsers } from '../services/exportService';
 
-const INITIAL_USERS = [
-  { id: 1, name: 'Carlos Mendoza',   email: 'cmendoza@etb.com',  role: 'Administrador', status: 'Activo',   lastLogin: 'Hace 2 horas',  avatar: 'C', department: 'TI' },
-  { id: 2, name: 'Ana Salazar',      email: 'asalazar@etb.com',  role: 'Operador',      status: 'Activo',   lastLogin: 'Hace 5 horas',  avatar: 'A', department: 'Operaciones' },
-  { id: 3, name: 'Luis Felipe Ruiz', email: 'lruiz@etb.com',     role: 'Consultor',     status: 'Inactivo', lastLogin: 'Hace 3 días',   avatar: 'L', department: 'Comercial' },
-  { id: 4, name: 'María Gómez',      email: 'mgomez@etb.com',    role: 'Operador',      status: 'Activo',   lastLogin: 'Hace 1 día',    avatar: 'M', department: 'Operaciones' },
-  { id: 5, name: 'Jorge Pérez',      email: 'jperez@etb.com',    role: 'Consultor',     status: 'Activo',   lastLogin: 'Hace 4 horas',  avatar: 'J', department: 'Comercial' },
-  { id: 6, name: 'Valentina Torres', email: 'vtorres@etb.com',   role: 'Operador',      status: 'Activo',   lastLogin: 'Hace 30 min',   avatar: 'V', department: 'Soporte' },
-  { id: 7, name: 'Roberto Castillo', email: 'rcastillo@etb.com', role: 'Consultor',     status: 'Inactivo', lastLogin: 'Hace 1 semana', avatar: 'R', department: 'Logística' },
-  { id: 8, name: 'Diana Herrera',    email: 'dherrera@etb.com',  role: 'Administrador', status: 'Activo',   lastLogin: 'Hace 15 min',   avatar: 'D', department: 'TI' },
-];
+const API_BASE = 'http://localhost:3001';
 
 const EMPTY_FORM = { name: '', email: '', role: 'Operador', status: 'Activo', department: '' };
 
@@ -27,12 +18,38 @@ export default function AdminUsuarios() {
   const { t } = useTranslation();
   const [searchText,    setSearchText]    = useState('');
   const [filterRole,    setFilterRole]    = useState('Todos');
-  const [usersList,     setUsersList]     = useState(INITIAL_USERS);
+  const [usersList,     setUsersList]     = useState([]);
   const [showModal,     setShowModal]     = useState(false);
   const [editingUser,   setEditingUser]   = useState(null);
   const [formData,      setFormData]      = useState(EMPTY_FORM);
   const [deleteTarget,  setDeleteTarget]  = useState(null);
   const [formErrors,    setFormErrors]    = useState({});
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(null);
+
+  // Cargar usuarios reales desde la API al montar
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios`);
+      const json = await res.json();
+      if (json.ok) {
+        setUsersList(json.data);
+      } else {
+        setError(t('Error al cargar los usuarios.'));
+      }
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      setError(t('No se pudo conectar con el servidor.'));
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredUsers = usersList.filter(u => {
     if (filterRole !== 'Todos' && u.role !== filterRole) return false;
@@ -100,10 +117,18 @@ export default function AdminUsuarios() {
     setDeleteTarget(null);
   };
 
-  const handleToggle = (userId) => {
-    setUsersList(prev => prev.map(u =>
-      u.id === userId ? { ...u, status: u.status === 'Activo' ? 'Inactivo' : 'Activo' } : u
-    ));
+  const handleToggle = async (userId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios/${userId}/toggle`, { method: 'PATCH' });
+      const json = await res.json();
+      if (json.ok) {
+        setUsersList(prev => prev.map(u =>
+          u.id === userId ? { ...u, status: json.data.status } : u
+        ));
+      }
+    } catch (err) {
+      console.error('Error toggling user status:', err);
+    }
   };
 
   const handleExport = () => { if (filteredUsers.length > 0) exportUsers(filteredUsers, t); };
@@ -183,7 +208,26 @@ export default function AdminUsuarios() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map(user => (
+                {loading && (
+                  <tr><td colSpan={7}>
+                    <div className="admin-empty" style={{ padding:'2.5rem' }}>
+                      <Loader size={40} className="spin-animation" />
+                      <h3>{t('Cargando usuarios...')}</h3>
+                    </div>
+                  </td></tr>
+                )}
+                {error && !loading && (
+                  <tr><td colSpan={7}>
+                    <div className="admin-empty" style={{ padding:'2.5rem' }}>
+                      <AlertTriangle size={40} style={{ color:'#ef4444' }} />
+                      <h3 style={{ color:'#ef4444' }}>{error}</h3>
+                      <button className="btn btn-primary" style={{ marginTop:'1rem' }} onClick={fetchUsers}>
+                        {t('Reintentar')}
+                      </button>
+                    </div>
+                  </td></tr>
+                )}
+                {!loading && !error && filteredUsers.map(user => (
                   <tr key={user.id} className="log-row">
                     <td className="col-user">
                       <div className="user-cell">
@@ -236,7 +280,7 @@ export default function AdminUsuarios() {
                     </td>
                   </tr>
                 ))}
-                {filteredUsers.length === 0 && (
+                {!loading && !error && filteredUsers.length === 0 && (
                   <tr><td colSpan={7}>
                     <div className="admin-empty" style={{ padding:'2.5rem' }}>
                       <Users size={40} /><h3>{t('Sin usuarios')}</h3>
