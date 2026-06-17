@@ -1,10 +1,10 @@
 /**
- * server/db.js — Gestión de conexión a Oracle (Thin Mode)
+ * config/db.js — Gestión de conexión a Oracle (Thin Mode)
  */
 import oracledb from 'oracledb'
 import 'dotenv/config'
 
-// Configuración de oracledb para modo Thin (no requiere Instant Client)
+// Configuración de oracledb para modo Thin
 oracledb.outFormat = oracledb.OUT_FORMAT_OBJECT
 oracledb.fetchAsString = [oracledb.CLOB]
 
@@ -12,6 +12,9 @@ const dbConfig = {
   user:          process.env.DB_USER,
   password:      process.env.DB_PASSWORD,
   connectString: process.env.DB_CONNECTION_STRING,
+  poolMin: 1,
+  poolMax: 10,
+  poolIncrement: 1
 }
 
 let pool = null
@@ -19,22 +22,32 @@ let pool = null
 /** Inicializa el pool de conexiones */
 export async function initDB() {
   try {
+    if (pool) return pool
     pool = await oracledb.createPool(dbConfig)
-    console.log('✅ Pool de conexiones a Oracle (ETB_PREQA / MSSLTED) iniciado.')
+    console.log('✅ Pool de conexiones a Oracle iniciado.')
+    return pool
   } catch (err) {
     console.error('❌ Error al crear el pool de conexiones:', err.message)
     throw err
   }
 }
 
+/** Obtiene una conexión del pool */
+async function getConnection() {
+  if (!pool) {
+    console.log('⏳ Pool no iniciado, intentando iniciar...')
+    await initDB()
+  }
+  return await pool.getConnection()
+}
+
 /** Ejecuta una consulta (SELECT) */
 export async function query(sql, params = {}) {
   let conn
   try {
-    conn = await oracledb.getConnection()
+    conn = await getConnection()
     const result = await conn.execute(sql, params)
     
-    // Normalizar claves a minúsculas para compatibilidad con el frontend
     if (result.rows && result.rows.length > 0) {
       return result.rows.map(row => {
         const normalized = {}
@@ -67,11 +80,10 @@ export async function queryOne(sql, params = {}) {
 export async function execute(sql, params = {}) {
   let conn
   try {
-    conn = await oracledb.getConnection()
+    conn = await getConnection()
     const result = await conn.execute(sql, params, { autoCommit: true })
     return result
   } catch (err) {
-    // Squelch ORA-00942 in logs
     if (!err.message.includes('ORA-00942')) {
       console.error('❌ Error en ejecución SQL (Oracle):', err.message)
     }
@@ -83,28 +95,8 @@ export async function execute(sql, params = {}) {
   }
 }
 
-/** Ejecuta una transacción (varias sentencias) */
-export async function executeTransaction(statements) {
-  let conn
-  try {
-    conn = await oracledb.getConnection()
-    for (const stmt of statements) {
-      await conn.execute(stmt.sql, stmt.params || {})
-    }
-    await conn.commit()
-  } catch (err) {
-    if (conn) await conn.rollback()
-    console.error('❌ Error en transacción:', err.message)
-    throw err
-  } finally {
-    if (conn) {
-      try { await conn.close() } catch (e) {}
-    }
-  }
-}
-
 /** 
- * Registra logs en Oracle. Si la tabla no existe (ORA-00942), loguea a consola.
+ * Registra logs en Oracle.
  */
 export async function registrarLog(serial, usuario, etapa, resultado, detalle) {
   try {
@@ -114,7 +106,6 @@ export async function registrarLog(serial, usuario, etapa, resultado, detalle) {
     `, { serial, usuario, etapa, resultado, detalle })
     console.log(`📝 Log registrado [${resultado}]: ${etapa} - ${serial}`)
   } catch (err) {
-    // Si falla (ej: tabla no existe en Oracle), avisamos por consola
     console.log(`ℹ️ [Log Oracle No Disponible] ${usuario} - ${etapa} - ${serial}: ${resultado} (${detalle})`)
   }
 }
@@ -135,11 +126,6 @@ export async function getLogs(serial = null) {
       ) WHERE ROWNUM <= 200
     `)
   } catch (err) {
-    // Si falla (ej: tabla no existe), no rompemos pero logueamos
-    if (!err.message.includes('ORA-00942')) {
-      console.error('⚠️ Error al obtener logs de Oracle:', err.message)
-    }
     return []
   }
 }
-

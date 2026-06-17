@@ -1,5 +1,5 @@
 /**
- * Servicio de autenticación — conecta con el backend real (server/index.js)
+ * Servicio de autenticación — conecta con el backend real (backend/index.js)
  */
 
 const API_BASE = 'http://localhost:3001'

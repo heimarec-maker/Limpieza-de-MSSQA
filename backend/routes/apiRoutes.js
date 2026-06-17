@@ -1,0 +1,169 @@
+import express from 'express'
+import * as equipmentService from '../services/equipmentService.js'
+import * as db from '../config/db.js'
+
+const router = express.Router()
+
+// Passwords almacenados del lado servidor (mirror de authService)
+const USER_PASSWORDS = {
+  '1': 'Admin123*',
+  '2': 'Heimar123*',
+  '3': 'Vanessa123*',
+  '4': 'Jhorman123*',
+}
+
+let SYSTEM_USERS = [
+  {
+    id: '1',
+    username: 'admin',
+    name: 'Admin ETB',
+    email: 'admin@etb.com.co',
+    role: 'Administrador',
+    department: 'Operaciones',
+    cargo: 'Administrador ETB',
+    status: 'Activo',
+  },
+  {
+    id: '2',
+    username: 'heimar',
+    name: 'Heimar',
+    email: 'heimar@etb.com.co',
+    role: 'Operador',
+    department: 'Operaciones',
+    cargo: 'Técnico ETB',
+    status: 'Activo',
+  },
+  {
+    id: '3',
+    username: 'vanessa',
+    name: 'Vanessa',
+    email: 'vanessa@etb.com.co',
+    role: 'Administrador',
+    department: 'Operaciones',
+    cargo: 'Administradora ETB',
+    status: 'Activo',
+  },
+  {
+    id: '4',
+    username: 'jhorman',
+    name: 'Jhorman',
+    email: 'jhorman@etb.com.co',
+    role: 'Operador',
+    department: 'Operaciones',
+    cargo: 'Técnico ETB',
+    status: 'Activo',
+  },
+]
+
+// ─── RUTAS DE EQUIPOS ────────────────────────────────────────────────────────
+
+router.get('/equipos', async (_req, res) => {
+  try {
+    const equipos = await equipmentService.listarTodosEquipos()
+    res.json({ ok: true, data: equipos })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al obtener equipos de la DB.' })
+  }
+})
+
+router.get('/equipos/:serial', async (req, res) => {
+  const { serial } = req.params
+  try {
+    const equipo = await equipmentService.validarEquipo(serial.toUpperCase())
+    if (!equipo) {
+      return res.status(404).json({ ok: false, mensaje: `Serial "${serial}" no encontrado.` })
+    }
+    res.json({ ok: true, data: { ...equipo, estado_cpe: equipo.estado, serial_nbr: equipo.serial } })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al validar el equipo.' })
+  }
+})
+
+router.post('/limpieza/:serial', async (req, res) => {
+  const { serial } = req.params
+  const { usuario, mac } = req.body
+  const serialUp = serial.toUpperCase()
+
+  try {
+    if (!mac) return res.status(400).json({ ok: false, message: 'La MAC es obligatoria.' })
+
+    const equipo = await equipmentService.validarEquipo(serialUp)
+    if (!equipo) return res.status(404).json({ ok: false, message: `El equipo "${serial}" no existe.` })
+
+    const estadoActual = (equipo.estado || '').toUpperCase()
+    if (['LIBRE', 'DISPONIBLE', 'RETIRADO'].includes(estadoActual)) {
+      return res.json({ ok: true, advertencia: true, message: `El equipo ya está en estado ${estadoActual}.` })
+    }
+
+    await equipmentService.ejecutarBorrado(serialUp, usuario)
+    const filasItem = await equipmentService.limpiarServItem(serialUp, usuario)
+    const filasReq = await equipmentService.limpiarServReq(serialUp, usuario)
+
+    res.json({
+      ok: true,
+      message: `Equipo ${serial} limpiado correctamente.`,
+      detalle: { serial: serialUp, mac, filasServItem: filasItem, filasServReq: filasReq }
+    })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error en el proceso de limpieza.', error: err.message })
+  }
+})
+
+// ─── ACTIVIDAD Y LOGS ────────────────────────────────────────────────────────
+
+router.get('/actividad', async (_req, res) => {
+  try {
+    const logs = await db.getLogs()
+    const actividades = (logs || []).map(log => {
+      let resultado = log.resultado === 'ÉXITO' ? 'Éxito' : log.resultado === 'NO_ENCONTRADO' ? 'Advertencia' : 'Error'
+      const accion = log.etapa === 'VALIDACION' ? 'Consulta' : 'Limpieza'
+      return {
+        id: `log-${log.log_id || Math.random()}`,
+        usuario: log.usuario,
+        accion,
+        modulo: 'Limpieza de Equipos',
+        detalles: `[${log.serial_nbr}] ${log.etapa} — ${log.detalle}`,
+        resultado,
+        timestamp: log.ejecutado_at,
+      }
+    })
+    res.json({ ok: true, data: actividades })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al obtener actividad.' })
+  }
+})
+
+router.get('/limpieza/logs', async (_req, res) => {
+  try {
+    const logs = await db.getLogs()
+    res.json({ ok: true, data: logs })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al obtener logs.' })
+  }
+})
+
+// ─── USUARIOS Y AUTH ─────────────────────────────────────────────────────────
+
+router.get('/usuarios', async (_req, res) => {
+  try {
+    res.json({ ok: true, data: SYSTEM_USERS.map(u => ({ ...u, avatar: u.name.charAt(0) })) })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al obtener usuarios.' })
+  }
+})
+
+router.post('/login', (req, res) => {
+  const { identifier, password } = req.body
+  const user = SYSTEM_USERS.find(u => u.email === identifier || u.username === identifier)
+
+  if (!user || USER_PASSWORDS[user.id] !== password) {
+    return res.status(401).json({ ok: false, message: 'Credenciales incorrectas.' })
+  }
+  if (user.status === 'Inactivo') {
+    return res.status(403).json({ ok: false, message: 'Cuenta desactivada.' })
+  }
+
+  res.json({ ok: true, user: { ...user, role: user.role === 'Administrador' ? 'admin' : 'user' } })
+})
+
+export default router

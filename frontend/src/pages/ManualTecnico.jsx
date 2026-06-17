@@ -99,7 +99,7 @@ export default function ManualTecnico() {
 
           <section id="frontend" className="manual-section">
             <h2><span className="section-number">2</span> Frontend (React)</h2>
-            <p>Ubicación: <code>/Front-ETB/src/</code></p>
+            <p>Ubicación: <code>/frontend/src/</code></p>
             
             <h3>Manejo de Estado</h3>
             <ul>
@@ -118,7 +118,7 @@ export default function ManualTecnico() {
 
           <section id="backend" className="manual-section">
             <h2><span className="section-number">3</span> Backend (Express)</h2>
-            <p>Ubicación: <code>/Front-ETB/server/</code></p>
+            <p>Ubicación: <code>/backend/</code></p>
             <p>El servidor Express (puerto 3001) gestiona las peticiones del frontend y las traduce a consultas SQL o llamadas a procedimientos PL/SQL.</p>
 
             <h3>Endpoints Principales</h3>

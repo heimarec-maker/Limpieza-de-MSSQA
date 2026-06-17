@@ -30,6 +30,7 @@ const mapResultType = (type) => {
 
 const RESULT_ICON = {
   'ÉXITO':        { Icon: CheckCircle,    cls: 'success' },
+  'INFO':         { Icon: AlertTriangle,  cls: 'info'    },
   'NO_ENCONTRADO':{ Icon: AlertTriangle,  cls: 'warning' },
   'ERROR':        { Icon: XCircle,        cls: 'error'   },
 }
@@ -643,13 +644,13 @@ export default function LimpiezaEquipos() {
                     const last = grouped.find(g => g.serial_nbr === log.serial_nbr && Math.abs(g.fecha - fecha) < 60000)
                     if (last) {
                       last.detalles.push(log.detalle || log.etapa)
-                      if (log.resultado === 'ÉXITO') last.exitos++
+                      if (log.resultado === 'ÉXITO' || log.resultado === 'INFO') last.exitos++
                       last.total++
                     } else {
                       grouped.push({
                         id: log.log_id, serial_nbr: log.serial_nbr, fecha, resultado: log.resultado,
                         rc, detalles: [log.detalle || log.etapa],
-                        exitos: log.resultado === 'ÉXITO' ? 1 : 0, total: 1
+                        exitos: (log.resultado === 'ÉXITO' || log.resultado === 'INFO') ? 1 : 0, total: 1
                       })
                     }
                   })
@@ -659,8 +660,8 @@ export default function LimpiezaEquipos() {
                         <span className="op-history-details">
                           <strong style={{ color: 'var(--clr-accent)', fontSize: '1.05rem' }}>{group.serial_nbr}</strong>
                         </span>
-                        <span className={`op-history-badge result-box ${group.rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
-                          <group.rc.Icon size={12} />
+                        <span className={`op-history-badge result-box ${group.exitos === group.total ? 'success' : group.rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
+                          {group.exitos === group.total ? <CheckCircle size={12} /> : <group.rc.Icon size={12} />}
                           {group.exitos === group.total ? 'LIMPIEZA EXITOSA' : group.resultado}
                         </span>
                       </div>

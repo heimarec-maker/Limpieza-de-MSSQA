@@ -20,7 +20,7 @@ const ETAPA_CONFIG = {
 
 const RESULT_CONFIG = {
   'ÉXITO':        { Icon: CheckCircle,   className: 'badge-success', color: '#10b981' },
-  'NO_ENCONTRADO':{ Icon: AlertTriangle, className: 'badge-warning', color: '#f59e0b' },
+  'INFO':          { Icon: Info,          className: 'badge-info',    color: '#6366f1' },
   'ERROR':        { Icon: XCircle,       className: 'badge-error',   color: '#ef4444' },
 }
 
@@ -69,10 +69,10 @@ export default function AdminLimpiezas() {
   // Estadísticas rápidas
   const stats = useMemo(() => {
     const exito       = logs.filter(l => l.resultado === 'ÉXITO').length
-    const noEncontrado= logs.filter(l => l.resultado === 'NO_ENCONTRADO').length
+    const info        = logs.filter(l => l.resultado === 'INFO').length
     const error       = logs.filter(l => l.resultado === 'ERROR').length
     const serialesUnicos = new Set(logs.map(l => l.serial_nbr)).size
-    return { total: logs.length, exito, noEncontrado, error, serialesUnicos }
+    return { total: logs.length, exito, info, error, serialesUnicos }
   }, [logs])
 
   // Filtrado
@@ -125,7 +125,7 @@ export default function AdminLimpiezas() {
           <StatCard Icon={Database}     label={t('Total Registros')}     value={stats.total}          color="accent"  />
           <StatCard Icon={Monitor}      label={t('Seriales Únicos')}     value={stats.serialesUnicos} color="blue"    />
           <StatCard Icon={CheckCircle}  label={t('Éxitos')}              value={stats.exito}          color="emerald" />
-          <StatCard Icon={AlertTriangle}label={t('No Encontrados')}      value={stats.noEncontrado}   color="purple"  />
+          <StatCard Icon={Info}          label={t('Informativos')}         value={stats.info}           color="purple"  />
           <StatCard Icon={XCircle}      label={t('Errores')}             value={stats.error}          color="red"     />
           <StatCard Icon={User}         label={t('Técnicos Activos')}    value={usuarios.length}      color="green"   />
         </div>
@@ -169,7 +169,7 @@ export default function AdminLimpiezas() {
               <select value={filterResult} onChange={e => setFilterResult(e.target.value)}>
                 <option value="Todos">{t('Todos los resultados')}</option>
                 <option value="ÉXITO">✅ Éxito</option>
-                <option value="NO_ENCONTRADO">⚠️ No Encontrado</option>
+                <option value="INFO">ℹ️ Informativo</option>
                 <option value="ERROR">❌ Error</option>
               </select>
             </div>
