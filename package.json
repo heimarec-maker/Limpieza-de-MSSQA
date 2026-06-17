@@ -9,9 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "server": "node server/index.js",
-    "db:init": "node database/init.js",
-    "db:queries": "node database/queries.js"
+    "server": "node server/index.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -31,7 +29,6 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
-    "better-sqlite3": "^12.9.0",
     "concurrently": "^9.2.1",
     "eslint": "^10.2.1",
     "eslint-plugin-react-hooks": "^7.1.1",

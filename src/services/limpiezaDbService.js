@@ -18,19 +18,20 @@ export async function consultarEquipo(serial, mac = '') {
   }
 
   const eq = json.data
-  const estado = eq.estado_cpe || eq.estado_general || 'DESCONOCIDO'
+  const estado = (eq.estado_cpe || eq.estado_general || 'DESCONOCIDO').toUpperCase()
+  const infoEquipo = `${eq.model || eq.tipo || 'Equipo'} (${eq.brand || 'ETB'})`
 
-  if (estado === 'LIBRE' || estado === 'RETIRADO') {
+  if (estado === 'LIBRE' || estado === 'RETIRADO' || estado === 'DISPONIBLE') {
     return {
       type: 'success',
-      message: `Estado del equipo: Disponible (${eq.modelo || eq.model || eq.tipo}). El equipo se encuentra limpio y liberado.`,
+      message: `Estado del equipo: ${estado} — ${infoEquipo}. El equipo se encuentra limpio y liberado.`,
       data: eq,
     }
   }
 
   return {
     type: 'warning',
-    message: `Estado del equipo: ${estado} — ${eq.model || eq.tipo} (${eq.brand}). Requiere limpieza para ser liberado.`,
+    message: `Estado del equipo: ${estado} — ${infoEquipo}. Requiere limpieza para ser liberado.`,
     data: eq,
   }
 }
@@ -84,9 +85,8 @@ export async function getLogs(serial = null) {
 
 // ─── Actividad unificada para AdminPanel ─────────────────────────────────────
 /**
- * Obtiene registros de actividad desde la BD SQLite (limpieza_log),
+ * Obtiene registros de actividad desde la BD Oracle (limpieza_log),
  * ya mapeados al formato que espera AdminPanel:
- * { id, usuario, accion, modulo, detalles, resultado, timestamp }
  */
 export async function getDBActivityLogs() {
   try {

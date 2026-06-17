@@ -41,7 +41,10 @@ async function validarEquipo(serial) {
     SELECT 
       a.ca_value      AS estado, 
       b.serial_nbr    AS serial,
-      b.equipment_id  AS equipment_id
+      b.equipment_id  AS equipment_id,
+      b.brand         AS brand,
+      b.model         AS model,
+      b.tipo          AS tipo
     FROM   ASAP.equip_ca_value a, ASAP.equipment b
     WHERE  b.serial_nbr = :serial
     AND    a.ca_value_label = 'Estado CPE'
@@ -184,16 +187,15 @@ app.post('/api/limpieza/:serial', async (req, res) => {
       })
     }
 
-    /* 
-    if (equipo.estado === 'LIBRE' || equipo.estado === 'DISPONIBLE') {
+    const estadoActual = (equipo.estado || '').toUpperCase()
+    if (['LIBRE', 'DISPONIBLE', 'RETIRADO'].includes(estadoActual)) {
       return res.json({
         ok: true,
         advertencia: true,
-        message: `El equipo ${serial} ya se encuentra ${equipo.estado}.`,
+        message: `El equipo ${serialUp} ya se encuentra en estado ${estadoActual}. No requiere limpieza.`,
         equipo
       })
     }
-    */
 
     // ── OP 2: BORRADO_EQUIPOS ──
     await ejecutarBorrado(serialUp, usuario)
@@ -223,7 +225,7 @@ app.post('/api/limpieza/:serial', async (req, res) => {
 /** GET /api/actividad — Registro de actividad unificado (para AdminPanel) */
 app.get('/api/actividad', async (_req, res) => {
   try {
-    const logs = await db.getLocalLogs()
+    const logs = await db.getLogs()
 
     const actividades = (logs || []).map(log => {
       let resultado
@@ -241,14 +243,14 @@ app.get('/api/actividad', async (_req, res) => {
       }[log.etapa] || log.etapa
 
       return {
-        id:        `lcl-${log.log_id}`,
+        id:        `log-${log.log_id || Math.random().toString(36).substr(2, 9)}`,
         usuario:   log.usuario,
         accion,
         modulo:    'Limpieza de Equipos',
         detalles:  `[${log.serial_nbr}] ${etapaLabel} — ${log.detalle}`,
         resultado,
         timestamp: log.ejecutado_at,
-        _source:   'local',
+        _source:   'oracle',
         _etapa:    log.etapa,
         _serial:   log.serial_nbr,
       }
@@ -260,20 +262,20 @@ app.get('/api/actividad', async (_req, res) => {
   }
 })
 
-/** GET /api/limpieza/logs — Historial completo de limpiezas locales */
+/** GET /api/limpieza/logs — Historial completo de limpiezas */
 app.get('/api/limpieza/logs', async (_req, res) => {
   try {
-    const logs = await db.getLocalLogs()
+    const logs = await db.getLogs()
     res.json({ ok: true, data: logs })
   } catch (err) {
     res.status(500).json({ ok: false, message: 'Error al obtener logs.' })
   }
 })
 
-/** GET /api/limpieza/logs/:serial — Historial local de un serial */
+/** GET /api/limpieza/logs/:serial — Historial de un serial específico */
 app.get('/api/limpieza/logs/:serial', async (req, res) => {
   try {
-    const logs = await db.getLocalLogs(req.params.serial.toUpperCase())
+    const logs = await db.getLogs(req.params.serial.toUpperCase())
     res.json({ ok: true, data: logs })
   } catch (err) {
     res.status(500).json({ ok: false, message: 'Error al obtener logs del serial.' })

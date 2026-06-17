@@ -55,7 +55,7 @@ export default function AdminPanel() {
   const [selectedLog, setSelectedLog] = useState(null)
   const [loadingDB, setLoadingDB] = useState(false)
 
-  // Cargar y fusionar logs de SQLite + localStorage
+  // Cargar y fusionar logs de Oracle + localStorage
   const refreshData = useCallback(async () => {
     setLoadingDB(true)
     try {
@@ -63,7 +63,7 @@ export default function AdminPanel() {
         getDBActivityLogs(),
         Promise.resolve(getActivityLogs()),
       ])
-      // Fusionar: DB primero (más reciente), luego los locales que no sean de DB
+      // Fusionar: Oracle primero (más reciente), luego los locales
       const merged = [...dbLogs, ...localLogs]
         .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       setLogs(merged)
@@ -85,7 +85,7 @@ export default function AdminPanel() {
     const handleStorage = (e) => { if (e.key === 'etb_activity_log') refreshData() }
     window.addEventListener('storage', handleStorage)
 
-    // Polling cada 15 s para capturar nuevas limpiezas en SQLite
+    // Polling cada 15 s para capturar nuevas limpiezas en Oracle
     const interval = setInterval(refreshData, 15000)
 
     return () => {
@@ -132,7 +132,7 @@ export default function AdminPanel() {
     return groups
   }, [filteredLogs])
 
-  // Limpiar solo registros locales (los de BD persisten en SQLite)
+  // Limpiar solo registros locales (los de Oracle persisten)
   const handleClear = () => {
     clearActivityLogs()
     refreshData()
@@ -165,7 +165,7 @@ export default function AdminPanel() {
               <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sincronizando BD...
             </span>
           : <span style={{ fontSize: '0.78rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Database size={13} /> {logs.filter(l => l._source === 'db').length} operaciones desde BD
+              <Database size={13} /> {logs.filter(l => l._source === 'oracle').length} operaciones desde Oracle
             </span>
       }
     >
@@ -278,7 +278,7 @@ export default function AdminPanel() {
             <div className="confirm-dialog glass-card" onClick={e => e.stopPropagation()}>
               <AlertTriangle size={40} className="confirm-icon" />
               <h3>{t('¿Estás seguro?')}</h3>
-              <p>{t('Se eliminarán los registros locales de sesión. Las operaciones guardadas en la base de datos seguirán disponibles.')}</p>
+              <p>{t('Se eliminarán los registros locales de sesión. Las operaciones guardadas en la base de datos Oracle seguirán disponibles.')}</p>
               <div className="confirm-actions">
                 <button className="btn btn-primary" style={{ background: '#ef4444' }} onClick={handleClear}>
                   {t('Sí, limpiar sesión')}
@@ -340,8 +340,8 @@ export default function AdminPanel() {
                                 <div>
                                   <span className="user-name">
                                     {log.usuario}
-                                    {log._source === 'db' && (
-                                      <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', background: 'rgba(99,102,241,0.2)', color: '#818cf8', padding: '1px 6px', borderRadius: '999px', fontWeight: 600 }}>BD</span>
+                                    {log._source === 'oracle' && (
+                                      <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', background: 'rgba(99,102,241,0.2)', color: '#818cf8', padding: '1px 6px', borderRadius: '999px', fontWeight: 600 }}>Oracle</span>
                                     )}
                                   </span>
                                   <span className="action-text">
