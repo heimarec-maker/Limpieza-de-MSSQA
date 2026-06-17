@@ -566,15 +566,6 @@ export default function LimpiezaEquipos() {
                   onChange={e => setQuerySerial(e.target.value)}
                 />
               </div>
-              <div className="form-group">
-                <label>{t('Dirección MAC')} ({t('Opcional')})</label>
-                <input
-                  type="text"
-                  placeholder={t('Ej: AAAAAAAAA115')}
-                  value={queryMac}
-                  onChange={e => setQueryMac(e.target.value)}
-                />
-              </div>
             </div>
             <button type="submit" className="btn btn-primary" disabled={queryLoading} style={{ width: '100%' }}>
               {queryLoading ? t('Consultando...') : t('Consultar Equipos')}
