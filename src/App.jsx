@@ -14,6 +14,7 @@ import AdminPanel from './pages/AdminPanel'
 import AdminUsuarios from './pages/AdminUsuarios'
 import AdminLimpiezas from './pages/AdminLimpiezas'
 import ManualUsuario from './pages/ManualUsuario'
+import ManualTecnico from './pages/ManualTecnico'
 import PoliticasSeguridad from './pages/PoliticasSeguridad'
 import SoporteTecnico from './pages/SoporteTecnico'
 import { useEffect } from 'react'
@@ -47,6 +48,7 @@ function AppContent() {
           <Route path="/limpieza-mss" element={<LimpiezaMss />} />
           <Route path="/perfil" element={<Perfil />} />
           <Route path="/manual" element={<ManualUsuario />} />
+          <Route path="/manual-tecnico" element={<ManualTecnico />} />
           <Route path="/seguridad" element={<PoliticasSeguridad />} />
           <Route path="/soporte" element={<SoporteTecnico />} />
           

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, FileText, HelpCircle, Mail, Phone, Network } from 'lucide-react'
+import { ShieldCheck, FileText, HelpCircle, Mail, Phone, Network, Terminal } from 'lucide-react'
 import './Footer.css'
 
 export default function Footer() {
@@ -11,6 +11,7 @@ export default function Footer() {
   const quickLinks = [
     { icon: HelpCircle, label: 'Soporte Técnico', href: '/soporte', isRouterLink: true },
     { icon: FileText, label: 'Manual de Usuario', href: '/manual', isRouterLink: true },
+    { icon: Terminal, label: 'Manual Técnico', href: '/manual-tecnico', isRouterLink: true },
     { icon: ShieldCheck, label: 'Políticas de Seguridad', href: '/seguridad', isRouterLink: true }
   ]
 

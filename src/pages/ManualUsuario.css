@@ -143,6 +143,19 @@
   gap: 0.4rem;
 }
 
+.manual-link-secondary a {
+  color: var(--clr-accent, #00c2ff);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 1px dashed transparent;
+  transition: all 0.2s ease;
+}
+
+.manual-link-secondary a:hover {
+  border-bottom-color: var(--clr-accent, #00c2ff);
+  opacity: 0.8;
+}
+
 /* ── Secciones ── */
 .manual-section {
   margin-bottom: 2.5rem;
