@@ -41,10 +41,7 @@ async function validarEquipo(serial) {
     SELECT 
       a.ca_value      AS estado, 
       b.serial_nbr    AS serial,
-      b.equipment_id  AS equipment_id,
-      b.brand         AS brand,
-      b.model         AS model,
-      b.tipo          AS tipo
+      b.equipment_id  AS equipment_id
     FROM   ASAP.equip_ca_value a, ASAP.equipment b
     WHERE  b.serial_nbr = :serial
     AND    a.ca_value_label = 'Estado CPE'
@@ -113,10 +110,7 @@ app.get('/api/equipos', async (_req, res) => {
       SELECT
         e.equipment_id,
         e.serial_nbr,
-        e.model,
-        e.brand,
-        e.tipo,
-        e.estado AS estado_general,
+        e.availability_status AS estado_general,
         cv.ca_value AS estado_cpe
       FROM ASAP.equipment e
       LEFT JOIN ASAP.equip_ca_value cv

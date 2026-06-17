@@ -19,7 +19,7 @@ export async function consultarEquipo(serial, mac = '') {
 
   const eq = json.data
   const estado = (eq.estado_cpe || eq.estado_general || 'DESCONOCIDO').toUpperCase()
-  const infoEquipo = `${eq.model || eq.tipo || 'Equipo'} (${eq.brand || 'ETB'})`
+  const infoEquipo = eq.model || eq.tipo || eq.equipment_name || 'Equipo'
 
   if (estado === 'LIBRE' || estado === 'RETIRADO' || estado === 'DISPONIBLE') {
     return {
