@@ -5,10 +5,15 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "node index.js"
+    "dev": "node index.js",
+    "test:auth": "node tests/auth_test.js"
   },
   "dependencies": {
     "cors": "^2.8.6",
+    "axios": "^1.6.5",
+    "mongoose": "^7.5.0",
+    "ldap-authentication": "^2.0.0",
+    "express-session": "^1.17.3",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "oracledb": "^7.0.0"

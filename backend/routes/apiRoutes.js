@@ -1,60 +1,12 @@
 import express from 'express'
 import * as equipmentService from '../services/equipmentService.js'
 import * as db from '../config/db.js'
+import { login as authLogin } from '../controllers/authController.js'
 import * as smwSoapService from '../services/smwSoapService.js'
 
 const router = express.Router()
 
-// Passwords almacenados del lado servidor (mirror de authService)
-const USER_PASSWORDS = {
-  '1': 'Admin123*',
-  '2': 'Heimar123*',
-  '3': 'Vanessa123*',
-  '4': 'Jhorman123*',
-}
-
-let SYSTEM_USERS = [
-  {
-    id: '1',
-    username: 'admin',
-    name: 'Admin ETB',
-    email: 'admin@etb.com.co',
-    role: 'Administrador',
-    department: 'Operaciones',
-    cargo: 'Administrador ETB',
-    status: 'Activo',
-  },
-  {
-    id: '2',
-    username: 'heimar',
-    name: 'Heimar',
-    email: 'heimar@etb.com.co',
-    role: 'Operador',
-    department: 'Operaciones',
-    cargo: 'Técnico ETB',
-    status: 'Activo',
-  },
-  {
-    id: '3',
-    username: 'vanessa',
-    name: 'Vanessa',
-    email: 'vanessa@etb.com.co',
-    role: 'Administrador',
-    department: 'Operaciones',
-    cargo: 'Administradora ETB',
-    status: 'Activo',
-  },
-  {
-    id: '4',
-    username: 'jhorman',
-    name: 'Jhorman',
-    email: 'jhorman@etb.com.co',
-    role: 'Operador',
-    department: 'Operaciones',
-    cargo: 'Técnico ETB',
-    status: 'Activo',
-  },
-]
+// NOTE: Removed the old hardcoded SYSTEM_USERS and USER_PASSWORDS to use LDAP + Mongo login
 
 // ─── RUTAS DE EQUIPOS ────────────────────────────────────────────────────────
 
@@ -159,24 +111,17 @@ router.get('/limpieza/logs', async (_req, res) => {
 
 router.get('/usuarios', async (_req, res) => {
   try {
-    res.json({ ok: true, data: SYSTEM_USERS.map(u => ({ ...u, avatar: u.name.charAt(0) })) })
+    // For now return an empty list or you can implement a Mongo-backed users list
+    res.json({ ok: true, data: [] })
   } catch (err) {
     res.status(500).json({ ok: false, message: 'Error al obtener usuarios.' })
   }
 })
 
+// Use real login controller (LDAP + Mongo upsert)
 router.post('/login', (req, res) => {
-  const { identifier, password } = req.body
-  const user = SYSTEM_USERS.find(u => u.email === identifier || u.username === identifier)
-
-  if (!user || USER_PASSWORDS[user.id] !== password) {
-    return res.status(401).json({ ok: false, message: 'Credenciales incorrectas.' })
-  }
-  if (user.status === 'Inactivo') {
-    return res.status(403).json({ ok: false, message: 'Cuenta desactivada.' })
-  }
-
-  res.json({ ok: true, user: { ...user, role: user.role === 'Administrador' ? 'admin' : 'user' } })
+  // authLogin handles LDAP verification, upsert and session
+  return authLogin(req, res)
 })
 
 
