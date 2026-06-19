@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MapPin, Search, PlusCircle, CheckCircle2, Info, Loader2 } from 'lucide-react'
+import { MapPin, Search, PlusCircle, CheckCircle2, Info, Loader2, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useUser } from '../context/UserContext'
 import SubPage from '../components/SubPage'
@@ -108,6 +108,36 @@ export default function LimpiezaSmw() {
                     }}
                   />
                   <MapPin size={22} style={{ position: 'absolute', left: '1.2rem', top: '50%', transform: 'translateY(-50%)', opacity: 0.4, color: error ? '#ef4444' : 'var(--clr-accent)' }} />
+                  
+                  {address && !isSearching && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddress('')
+                        setError(null)
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '1.2rem',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: 'none',
+                        color: 'var(--clr-muted)',
+                        cursor: 'pointer',
+                        padding: '0.4rem',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s ease'
+                      }}
+                      className="clear-btn"
+                      title={t('Limpiar')}
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
                 </div>
                 <button 
                   type="submit" 

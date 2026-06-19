@@ -1,74 +1,83 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * Servicio centralizado de exportación de datos.
- * Ahora soporta exportación directa a PDF con diseño profesional.
- */
-
-/**
  * Genera y descarga un archivo PDF a partir de una tabla de datos.
- * @param {Object} options
- * @param {string} options.filename - Nombre del archivo (sin extensión).
- * @param {string} options.title - Título que aparecerá en el PDF.
- * @param {string[]} options.headers - Encabezados de las columnas.
- * @param {Array<Array<string>>} options.rows - Filas de datos.
  */
-export function exportPDF({ filename, title, headers, rows }) {
+export async function exportPDF({ filename, title, headers, rows }) {
   if (!rows || rows.length === 0) return;
 
-  const doc = new jsPDF({
-    orientation: headers.length > 5 ? 'landscape' : 'portrait',
-  });
+  try {
 
-  // Estilo Glassmorphism / Premium Colors
-  const accentColor = [0, 112, 243]; // #0070f3 del Portal
+    const doc = new jsPDF({
+      orientation: headers.length > 5 ? 'landscape' : 'portrait',
+    });
 
-  // Título
-  doc.setFontSize(20);
-  doc.setTextColor(30, 41, 59); // Slate 800
-  doc.text(title || 'Reporte de Sistema', 14, 22);
+    const accentColor = [0, 112, 243]; // #0070f3
 
-  // Fecha de generación
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139); // Slate 500
-  doc.text(`Portal Gestión ETB — Generado el: ${new Date().toLocaleString()}`, 14, 30);
+    doc.setFontSize(20);
+    doc.setTextColor(30, 41, 59);
+    doc.text(title || 'Reporte de Sistema', 14, 22);
 
-  // Tabla con jspdf-autotable
-  autoTable(doc, {
-    startY: 35,
-    head: [headers],
-    body: rows,
-    theme: 'striped',
-    headStyles: { 
-      fillColor: accentColor, 
-      textColor: [255, 255, 255],
-      fontSize: 10,
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [51, 65, 85], // Slate 700
-    },
-    alternateRowStyles: { 
-      fillColor: [validColor(accentColor, 0.03)] 
-    },
-    margin: { top: 35 },
-    didDrawPage: (data) => {
-      // Pie de página
-      doc.setFontSize(8);
-      const str = `Página ${doc.internal.getNumberOfPages()}`;
-      doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
-    }
-  });
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Portal Gestión ETB — Generado el: ${new Date().toLocaleString()}`, 14, 30);
 
-  doc.save(`${filename}.pdf`);
+    autoTable(doc, {
+      startY: 35,
+      head: [headers],
+      body: rows,
+      theme: 'striped',
+      headStyles: { 
+        fillColor: accentColor, 
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'bold',
+        halign: 'center'
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: [51, 65, 85],
+      },
+      alternateRowStyles: { 
+        fillColor: [248, 250, 252] 
+      },
+      margin: { top: 35 },
+      didDrawPage: (data) => {
+        doc.setFontSize(8);
+        const str = `Página ${doc.internal.getNumberOfPages()}`;
+        doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
+      }
+    });
+
+    doc.save(`${filename}.pdf`);
+  } catch (error) {
+    console.error('Error al generar PDF:', error);
+    alert('Error al generar PDF: No se pudieron cargar las librerías necesarias. Por favor, asegúrate de que jspdf y jspdf-autotable estén instaladas.');
+    
+    // Intentar fallback a CSV si falla el PDF
+    console.log('Intentando fallback a CSV...');
+    exportCSVFallback({ filename, headers, rows });
+  }
 }
 
-// Auxiliar para colores de filas
-function validColor(base, alpha) {
-  return [248, 250, 252]; // Slate 50
+/**
+ * Fallback simple a CSV si el PDF falla.
+ */
+function exportCSVFallback({ filename, headers, rows }) {
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 /**
@@ -81,11 +90,11 @@ export function exportActivityLogs(logs, t) {
     headers: [t('Fecha'), t('Usuario'), t('Acción'), t('Módulo'), t('Detalles'), t('Resultado')],
     rows: logs.map(l => [
       formatTimestamp(l.timestamp),
-      l.usuario,
-      l.accion,
-      l.modulo,
+      l.usuario || '',
+      l.accion || '',
+      l.modulo || '',
       l.detalles || '',
-      l.resultado,
+      l.resultado || '',
     ])
   });
 }
@@ -125,13 +134,9 @@ export function exportOperationResults({ module, results, t }) {
   });
 }
 
-// Exportar CSV se mantiene por si se necesita en el futuro, pero se renombra internamente
 export function exportCSV({ filename, headers, rows }) {
-  // Por ahora lo redirigimos a PDF si el usuario quiere "todo directo a pdf"
   exportPDF({ filename, title: filename.replace(/_/g, ' '), headers, rows });
 }
-
-// ── Utilidades internas ──
 
 function getDateStamp() {
   return new Date().toISOString().slice(0, 10).replace(/-/g, '_');
