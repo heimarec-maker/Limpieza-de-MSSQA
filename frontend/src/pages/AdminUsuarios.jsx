@@ -8,7 +8,7 @@ import {
   X, Save, Lock, Unlock, AlertTriangle, Briefcase, Loader
 } from 'lucide-react';
 import './AdminPanel.css';
-import { exportUsers } from '../services/exportService';
+import { exportExcel } from '../services/exportService';
 
 const API_BASE = 'http://localhost:3001';
 
@@ -131,7 +131,16 @@ export default function AdminUsuarios() {
     }
   };
 
-  const handleExport = () => { if (filteredUsers.length > 0) exportUsers(filteredUsers, t); };
+
+  const handleExportExcel = () => {
+    if (filteredUsers.length > 0) {
+      exportExcel({
+        filename: `Reporte_Usuarios_${new Date().toISOString().slice(0, 10)}`,
+        headers: [t('Nombre'), t('Correo'), t('Rol'), t('Estado')],
+        rows: filteredUsers.map(u => [u.name, u.email, u.role, u.status])
+      });
+    }
+  };
 
   const total    = usersList.length;
   const activos  = usersList.filter(u => u.status === 'Activo').length;
@@ -163,11 +172,10 @@ export default function AdminUsuarios() {
           <div className="toolbar-filters">
             <div className="filter-group">
               <Filter size={16} />
-              <select value={filterRole} onChange={e => setFilterRole(e.target.value)}>
+              <select className="premium-select" value={filterRole} onChange={e => setFilterRole(e.target.value)}>
                 <option value="Todos">{t('Todos los roles')}</option>
                 <option value="Administrador">{t('Administrador')}</option>
                 <option value="Operador">{t('Operador')}</option>
-                <option value="Consultor">{t('Consultor')}</option>
               </select>
             </div>
             <div className="filter-search">
@@ -177,8 +185,8 @@ export default function AdminUsuarios() {
             </div>
           </div>
           <div className="toolbar-actions">
-            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar PDF')}>
-              <Download size={16} /> {t('Exportar PDF')}
+            <button className="btn-toolbar" onClick={handleExportExcel} title={t('Exportar Excel')}>
+              <Database size={16} /> {t('Exportar Excel')}
             </button>
             <button className="btn btn-primary" style={{ padding: '0.6rem 1rem' }} onClick={openCreate}>
               <UserPlus size={16} /> {t('Nuevo Usuario')}
@@ -329,11 +337,10 @@ export default function AdminUsuarios() {
               </div>
               <div className="form-group">
                 <label className="form-label">{t('Rol')}</label>
-                <select className="form-select" value={formData.role}
+                <select className="premium-select" style={{ width: '100%', height: '54px' }} value={formData.role}
                   onChange={e => setFormData(p => ({ ...p, role: e.target.value }))}>
                   <option value="Administrador">{t('Administrador')}</option>
                   <option value="Operador">{t('Operador')}</option>
-                  <option value="Consultor">{t('Consultor')}</option>
                 </select>
               </div>
               <div className="form-group">
@@ -345,7 +352,7 @@ export default function AdminUsuarios() {
               </div>
               <div className="form-group">
                 <label className="form-label">{t('Estado')}</label>
-                <select className="form-select" value={formData.status}
+                <select className="premium-select" style={{ width: '100%', height: '54px' }} value={formData.status}
                   onChange={e => setFormData(p => ({ ...p, status: e.target.value }))}>
                   <option value="Activo">{t('Activo')}</option>
                   <option value="Inactivo">{t('Inactivo')}</option>

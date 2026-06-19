@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import SubPage from '../components/SubPage'
 import { getLogs } from '../services/limpiezaDbService'
-import { exportCSV } from '../services/exportService'
+import { exportExcel } from '../services/exportService'
 import './AdminPanel.css'
 
 const ETAPA_CONFIG = {
@@ -91,17 +91,19 @@ export default function AdminLimpiezas() {
     })
   }, [logs, filterUsuario, filterEtapa, filterResult, searchSerial])
 
-  const handleExport = () => {
+
+
+  const handleExportExcel = () => {
     if (filtered.length === 0) return
-    const date = new Date().toISOString().slice(0, 10)
-    exportCSV({
-      filename: `historial_limpiezas_${date}`,
-      headers: ['ID', 'Serial', 'Usuario', 'Etapa', 'Resultado', 'Detalle', 'Fecha'],
+    exportExcel({
+      filename: `Historial_Limpiezas_${new Date().toISOString().slice(0, 10)}`,
+      headers: [t('ID'), t('Serial'), t('Usuario'), t('Tipo'), t('Etapa'), t('Resultado'), t('Fecha')],
       rows: filtered.map(l => [
         l.log_id, l.serial_nbr, l.usuario,
-        l.etapa, l.resultado, l.detalle || '',
-        new Date(l.ejecutado_at).toLocaleString(),
-      ]),
+        l.etapa?.startsWith('SMW') ? 'SMW' : 'Equipo',
+        l.etapa, l.resultado,
+        new Date(l.ejecutado_at).toLocaleString()
+      ])
     })
   }
 
@@ -201,13 +203,8 @@ export default function AdminLimpiezas() {
               <RefreshCw size={16} style={{ animation: refreshing ? 'spin 0.8s linear infinite' : 'none' }} />
               {t('Actualizar')}
             </button>
-            <button
-              className="btn-toolbar"
-              onClick={handleExport}
-              disabled={filtered.length === 0}
-              title={t('Exportar PDF')}
-            >
-              <Download size={16} /> {t('Exportar PDF')}
+            <button className="btn-toolbar" onClick={handleExportExcel} title={t('Exportar Excel')}>
+              <Database size={16} /> {t('Excel')}
             </button>
           </div>
         </div>
