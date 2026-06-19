@@ -16,6 +16,8 @@ const ETAPA_CONFIG = {
   'SERV_ITEM':   { label: 'Serv. Item', color: '#3b82f6' },
   'SERV_REQ':    { label: 'Serv. Req',  color: '#f59e0b' },
   'VALIDACION':  { label: 'Validación', color: '#6366f1' },
+  'SMW_LIMPIEZA':{ label: 'Liberación SMW', color: '#10b981' },
+  'SMW_CONSULTA':{ label: 'Consulta SMW', color: '#6366f1' },
 }
 
 const RESULT_CONFIG = {
@@ -148,16 +150,30 @@ export default function AdminLimpiezas() {
             {/* Filtro usuario */}
             <div className="filter-group">
               <User size={16} />
-              <select value={filterUsuario} onChange={e => setFilterUsuario(e.target.value)}>
+              <select className="premium-select" value={filterUsuario} onChange={e => setFilterUsuario(e.target.value)}>
                 <option value="Todos">{t('Todos los técnicos')}</option>
                 {usuarios.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+            </div>
+
+            {/* Filtro Tipo */}
+            <div className="filter-group">
+              <Database size={16} />
+              <select className="premium-select" value={filterEtapa === 'SMW_LIMPIEZA' ? 'SMW' : filterEtapa === 'Todas' ? 'Todas' : 'Equipos'} onChange={e => {
+                if (e.target.value === 'SMW') setFilterEtapa('SMW_LIMPIEZA')
+                else if (e.target.value === 'Equipos') setFilterEtapa('BORRADO')
+                else setFilterEtapa('Todas')
+              }}>
+                <option value="Todas">{t('Todos los tipos')}</option>
+                <option value="Equipos">{t('Limpieza Equipos')}</option>
+                <option value="SMW">{t('Limpieza SMW')}</option>
               </select>
             </div>
 
             {/* Filtro etapa */}
             <div className="filter-group">
               <Activity size={16} />
-              <select value={filterEtapa} onChange={e => setFilterEtapa(e.target.value)}>
+              <select className="premium-select" value={filterEtapa} onChange={e => setFilterEtapa(e.target.value)}>
                 <option value="Todas">{t('Todas las etapas')}</option>
                 {etapas.map(e => <option key={e} value={e}>{ETAPA_CONFIG[e]?.label || e}</option>)}
               </select>
@@ -166,7 +182,7 @@ export default function AdminLimpiezas() {
             {/* Filtro resultado */}
             <div className="filter-group">
               <Filter size={16} />
-              <select value={filterResult} onChange={e => setFilterResult(e.target.value)}>
+              <select className="premium-select" value={filterResult} onChange={e => setFilterResult(e.target.value)}>
                 <option value="Todos">{t('Todos los resultados')}</option>
                 <option value="ÉXITO">✅ Éxito</option>
                 <option value="INFO">ℹ️ Informativo</option>
@@ -189,9 +205,9 @@ export default function AdminLimpiezas() {
               className="btn-toolbar"
               onClick={handleExport}
               disabled={filtered.length === 0}
-              title={t('Exportar CSV')}
+              title={t('Exportar PDF')}
             >
-              <Download size={16} /> {t('Exportar')}
+              <Download size={16} /> {t('Exportar PDF')}
             </button>
           </div>
         </div>
@@ -228,16 +244,16 @@ export default function AdminLimpiezas() {
             <div className="admin-table-scroll">
               <table className="admin-table">
                 <thead>
-                  <tr>
-                    <th>#</th>
-                    <th><Monitor size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Serial')}</th>
-                    <th><User size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Técnico')}</th>
-                    <th>{t('Etapa')}</th>
-                    <th>{t('Resultado')}</th>
-                    <th>{t('Detalle')}</th>
-                    <th><CalendarDays size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Fecha')}</th>
-                    <th></th>
-                  </tr>
+                    <tr>
+                      <th>#</th>
+                      <th><Monitor size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Serial / Dirección')}</th>
+                      <th><User size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Técnico')}</th>
+                      <th>{t('Tipo')}</th>
+                      <th>{t('Etapa')}</th>
+                      <th>{t('Resultado')}</th>
+                      <th><CalendarDays size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />{t('Fecha')}</th>
+                      <th></th>
+                    </tr>
                 </thead>
                 <tbody>
                   {filtered.map(log => {
@@ -266,6 +282,11 @@ export default function AdminLimpiezas() {
                           </div>
                         </td>
                         <td>
+                          <span className={`action-badge ${log.etapa?.startsWith('SMW') ? 'action-consulta' : 'action-limpieza'}`}>
+                            {log.etapa?.startsWith('SMW') ? 'SMW' : 'Equipos'}
+                          </span>
+                        </td>
+                        <td>
                           <span style={{
                             display: 'inline-block',
                             padding: '0.18rem 0.55rem',
@@ -284,9 +305,6 @@ export default function AdminLimpiezas() {
                             <rc.Icon size={12} />
                             {log.resultado}
                           </span>
-                        </td>
-                        <td style={{ maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--clr-muted)', fontSize: '0.82rem' }}>
-                          {log.detalle || '—'}
                         </td>
                         <td className="col-date">
                           <span className="date-main">{date}</span>

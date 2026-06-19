@@ -218,7 +218,7 @@ export default function AdminPanel() {
           <div className="toolbar-filters">
             <div className="filter-group">
               <Filter size={16} />
-              <select value={filterAction} onChange={e => setFilterAction(e.target.value)}>
+              <select className="premium-select" value={filterAction} onChange={e => setFilterAction(e.target.value)}>
                 <option value="Todas">{t('Todas las acciones')}</option>
                 <option value="Limpieza">{t('Limpieza')}</option>
                 <option value="Creación">{t('Creación')}</option>
@@ -228,7 +228,7 @@ export default function AdminPanel() {
 
             <div className="filter-group">
               <TrendingUp size={16} />
-              <select value={filterResult} onChange={e => setFilterResult(e.target.value)}>
+              <select className="premium-select" value={filterResult} onChange={e => setFilterResult(e.target.value)}>
                 <option value="Todos">{t('Todos los resultados')}</option>
                 <option value="Éxito">{t('Éxito')}</option>
                 <option value="Error">Error</option>
@@ -239,7 +239,7 @@ export default function AdminPanel() {
 
             <div className="filter-group">
               <Users size={16} />
-              <select value={filterUser} onChange={e => setFilterUser(e.target.value)}>
+              <select className="premium-select" value={filterUser} onChange={e => setFilterUser(e.target.value)}>
                 <option value="Todos">{t('Todos los usuarios')}</option>
                 {(stats.listaUsuarios || []).map(u => (
                   <option key={u} value={u}>{u}</option>
@@ -259,8 +259,8 @@ export default function AdminPanel() {
           </div>
 
           <div className="toolbar-actions">
-            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar')}>
-              <Download size={16} /> {t('Exportar')}
+            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar PDF')}>
+              <Download size={16} /> {t('Exportar PDF')}
             </button>
             <button
               className="btn-toolbar btn-toolbar-danger"

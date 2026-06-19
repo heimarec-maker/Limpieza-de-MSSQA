@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MapPin, Search, PlusCircle, CheckCircle2, Info, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useUser } from '../context/UserContext'
 import SubPage from '../components/SubPage'
 import SmwCleaningModal from '../components/SmwCleaningModal'
 
@@ -8,6 +9,7 @@ import { consultarDireccionSmw, limpiarDireccionSmw } from '../services/smwServi
 
 export default function LimpiezaSmw() {
   const { t } = useTranslation()
+  const { currentUser } = useUser()
   const [address, setAddress] = useState('')
   const [isSearching, setIsSearching] = useState(false)
   const [selectedData, setSelectedData] = useState(null)
@@ -44,7 +46,7 @@ export default function LimpiezaSmw() {
     setError(null)
     
     try {
-      await limpiarDireccionSmw(data.codigoDireccion, data.rfsList)
+      await limpiarDireccionSmw(data.codigoDireccion, data.rfsList, currentUser?.username || 'Sistema', address)
       setSuccessMsg(t('Libreación de RFS exitosa en SMW'))
       setAddress('')
       setSelectedData(null)

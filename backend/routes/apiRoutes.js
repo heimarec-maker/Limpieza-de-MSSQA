@@ -117,12 +117,24 @@ router.get('/actividad', async (_req, res) => {
     const logs = await db.getLogs()
     const actividades = (logs || []).map(log => {
       let resultado = log.resultado === 'ÉXITO' ? 'Éxito' : log.resultado === 'NO_ENCONTRADO' ? 'Advertencia' : 'Error'
-      const accion = log.etapa === 'VALIDACION' ? 'Consulta' : 'Limpieza'
+      
+      // Determinar módulo y acción según la etapa
+      let modulo = 'Limpieza de Equipos'
+      let accion = 'Limpieza'
+      
+      if (log.etapa?.startsWith('SMW_')) {
+        modulo = 'Limpieza de SMW'
+      }
+      
+      if (log.etapa === 'VALIDACION' || log.etapa === 'SMW_CONSULTA') {
+        accion = 'Consulta'
+      }
+
       return {
         id: `log-${log.log_id || Math.random()}`,
         usuario: log.usuario,
         accion,
-        modulo: 'Limpieza de Equipos',
+        modulo,
         detalles: `[${log.serial_nbr}] ${log.etapa} — ${log.detalle}`,
         resultado,
         timestamp: log.ejecutado_at,
@@ -208,7 +220,7 @@ router.post('/smw/consultar', async (req, res) => {
  * Realiza la limpieza en SMW
  */
 router.post('/smw/limpiar', async (req, res) => {
-  const { codigoDireccion, rfsList } = req.body
+  const { codigoDireccion, rfsList, usuario, direccion } = req.body
   try {
     if (!codigoDireccion || !rfsList) {
       return res.status(400).json({ ok: false, message: 'Datos insuficientes para la limpieza.' })
@@ -216,12 +228,29 @@ router.post('/smw/limpiar', async (req, res) => {
 
     await smwSoapService.liberarRecursos(codigoDireccion, rfsList)
 
+    // Registrar Log
+    await db.registrarLog(
+      codigoDireccion, 
+      usuario || 'Sistema', 
+      'SMW_LIMPIEZA', 
+      'ÉXITO', 
+      `Limpieza de recursos SMW exitosa. Dirección: ${direccion || 'N/A'}`
+    )
+
     res.json({
       ok: true,
       message: 'Limpieza de recursos SMW completada exitosamente.'
     })
   } catch (err) {
     console.error('Error en /smw/limpiar:', err.message)
+    // Registrar Error
+    await db.registrarLog(
+      codigoDireccion || 'ERR', 
+      usuario || 'Sistema', 
+      'SMW_LIMPIEZA', 
+      'ERROR', 
+      `Fallo: ${err.message}`
+    )
     res.status(500).json({ ok: false, message: err.message || 'Error al realizar limpieza SMW.' })
   }
 })

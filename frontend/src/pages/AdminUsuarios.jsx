@@ -177,8 +177,8 @@ export default function AdminUsuarios() {
             </div>
           </div>
           <div className="toolbar-actions">
-            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar')}>
-              <Download size={16} /> {t('Exportar')}
+            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar PDF')}>
+              <Download size={16} /> {t('Exportar PDF')}
             </button>
             <button className="btn btn-primary" style={{ padding: '0.6rem 1rem' }} onClick={openCreate}>
               <UserPlus size={16} /> {t('Nuevo Usuario')}

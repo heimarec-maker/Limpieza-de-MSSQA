@@ -25,12 +25,12 @@ export async function consultarDireccionSmw(direccion) {
 /**
  * Ejecuta la limpieza de recursos en SMW.
  */
-export async function limpiarDireccionSmw(codigoDireccion, rfsList) {
+export async function limpiarDireccionSmw(codigoDireccion, rfsList, usuario, direccion) {
   try {
     const res = await fetch(`${API_BASE}/smw/limpiar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ codigoDireccion, rfsList })
+      body: JSON.stringify({ codigoDireccion, rfsList, usuario, direccion })
     });
     
     const json = await res.json();
