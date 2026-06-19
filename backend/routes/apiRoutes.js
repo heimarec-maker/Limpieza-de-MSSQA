@@ -1,6 +1,7 @@
 import express from 'express'
 import * as equipmentService from '../services/equipmentService.js'
 import * as db from '../config/db.js'
+import * as smwSoapService from '../services/smwSoapService.js'
 
 const router = express.Router()
 
@@ -164,6 +165,65 @@ router.post('/login', (req, res) => {
   }
 
   res.json({ ok: true, user: { ...user, role: user.role === 'Administrador' ? 'admin' : 'user' } })
+})
+
+
+// ─── RUTAS DE LIMPIEZA SMW (SOAP) ───────────────────────────────────────────
+
+// ─── RUTAS DE LIMPIEZA SMW (SOAP) ───────────────────────────────────────────
+
+/**
+ * Consulta una dirección en SMW:
+ * 1. Georreferencia para obtener CodigoDireccion
+ * 2. Consulta RFS para obtener el listado y cantidad
+ */
+router.post('/smw/consultar', async (req, res) => {
+  const { direccion } = req.body
+  try {
+    if (!direccion) return res.status(400).json({ ok: false, message: 'La dirección es obligatoria.' })
+
+    // Step 1: Georef
+    const codigoDireccion = await smwSoapService.georeferenciarDireccion(direccion)
+    
+    // Step 2: Rfs
+    const { list: rfsList, mensaje } = await smwSoapService.consultarRfs(codigoDireccion)
+
+    res.json({
+      ok: true,
+      data: {
+        direccion,
+        codigoDireccion,
+        cantidadRfs: rfsList.length,
+        mensaje,
+        rfsList // Lo enviamos para que el front lo guarde y lo use al limpiar
+      }
+    })
+  } catch (err) {
+    console.error('Error en /smw/consultar:', err.message)
+    res.status(500).json({ ok: false, message: err.message || 'Error al consultar SMW.' })
+  }
+})
+
+/**
+ * Realiza la limpieza en SMW
+ */
+router.post('/smw/limpiar', async (req, res) => {
+  const { codigoDireccion, rfsList } = req.body
+  try {
+    if (!codigoDireccion || !rfsList) {
+      return res.status(400).json({ ok: false, message: 'Datos insuficientes para la limpieza.' })
+    }
+
+    await smwSoapService.liberarRecursos(codigoDireccion, rfsList)
+
+    res.json({
+      ok: true,
+      message: 'Limpieza de recursos SMW completada exitosamente.'
+    })
+  } catch (err) {
+    console.error('Error en /smw/limpiar:', err.message)
+    res.status(500).json({ ok: false, message: err.message || 'Error al realizar limpieza SMW.' })
+  }
 })
 
 export default router
