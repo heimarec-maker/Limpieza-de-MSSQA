@@ -1,143 +1,63 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-
 /**
- * Servicio centralizado de exportación de datos.
- * Ahora soporta exportación directa a PDF con diseño profesional.
+ * exportService.js
+ * Servicio para la exportación de datos a formato Excel (.xlsx).
  */
 
 /**
- * Genera y descarga un archivo PDF a partir de una tabla de datos.
- * @param {Object} options
- * @param {string} options.filename - Nombre del archivo (sin extensión).
- * @param {string} options.title - Título que aparecerá en el PDF.
- * @param {string[]} options.headers - Encabezados de las columnas.
- * @param {Array<Array<string>>} options.rows - Filas de datos.
+ * Exporta a formato Excel real (.xlsx).
  */
-export function exportPDF({ filename, title, headers, rows }) {
+export async function exportExcel({ filename, headers, rows }) {
+  console.log('Exportando XLSX:', { filename, rowsCount: rows?.length });
   if (!rows || rows.length === 0) return;
 
-  const doc = new jsPDF({
-    orientation: headers.length > 5 ? 'landscape' : 'portrait',
-  });
-
-  // Estilo Glassmorphism / Premium Colors
-  const accentColor = [0, 112, 243]; // #0070f3 del Portal
-
-  // Título
-  doc.setFontSize(20);
-  doc.setTextColor(30, 41, 59); // Slate 800
-  doc.text(title || 'Reporte de Sistema', 14, 22);
-
-  // Fecha de generación
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139); // Slate 500
-  doc.text(`Portal Gestión ETB — Generado el: ${new Date().toLocaleString()}`, 14, 30);
-
-  // Tabla con jspdf-autotable
-  autoTable(doc, {
-    startY: 35,
-    head: [headers],
-    body: rows,
-    theme: 'striped',
-    headStyles: { 
-      fillColor: accentColor, 
-      textColor: [255, 255, 255],
-      fontSize: 10,
-      fontStyle: 'bold',
-      halign: 'center'
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [51, 65, 85], // Slate 700
-    },
-    alternateRowStyles: { 
-      fillColor: [validColor(accentColor, 0.03)] 
-    },
-    margin: { top: 35 },
-    didDrawPage: (data) => {
-      // Pie de página
-      doc.setFontSize(8);
-      const str = `Página ${doc.internal.getNumberOfPages()}`;
-      doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
-    }
-  });
-
-  doc.save(`${filename}.pdf`);
-}
-
-// Auxiliar para colores de filas
-function validColor(base, alpha) {
-  return [248, 250, 252]; // Slate 50
+  try {
+    // Carga dinámica de SheetJS
+    const XLSX = await import('xlsx');
+    
+    // Crear hoja de trabajo a partir del array de arrays
+    const worksheet = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    
+    // Crear libro de trabajo (Workbook)
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Portal ETB');
+    
+    // Generar y descargar el archivo
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+  } catch (error) {
+    console.error('Error al generar Excel moderno:', error);
+    // Fallback a CSV si falla la librería moderna
+    exportCSVFallback({ filename, headers, rows });
+  }
 }
 
 /**
- * Exporta registros de actividad filtrados como PDF.
+ * Fallback a CSV simple si falla el motor de Excel.
  */
-export function exportActivityLogs(logs, t) {
-  exportPDF({
-    filename: `Registro_Actividad_${getDateStamp()}`,
-    title: t('Registro de Actividad'),
-    headers: [t('Fecha'), t('Usuario'), t('Acción'), t('Módulo'), t('Detalles'), t('Resultado')],
-    rows: logs.map(l => [
-      formatTimestamp(l.timestamp),
-      l.usuario,
-      l.accion,
-      l.modulo,
-      l.detalles || '',
-      l.resultado,
-    ])
-  });
+function exportCSVFallback({ filename, headers, rows }) {
+  const csvContent = [
+    headers.join(';'),
+    ...rows.map(row => row.map(cell => {
+      const str = String(cell).replace(/"/g, '""');
+      return `"${str}"`;
+    }).join(';'))
+  ].join('\n');
+
+  const BOM = '\uFEFF';
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${filename}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
-/**
- * Exporta la lista de usuarios como PDF.
- */
-export function exportUsers(users, t) {
-  exportPDF({
-    filename: `Reporte_Usuarios_${getDateStamp()}`,
-    title: t('Reporte de Usuarios'),
-    headers: [t('Nombre'), t('Correo'), t('Rol'), t('Estado'), t('Último Acceso')],
-    rows: users.map(u => [
-      u.name || '',
-      u.email || '',
-      u.role || '',
-      u.status || '',
-      u.lastLogin || '',
-    ])
-  });
-}
-
-/**
- * Exporta resultados de operaciones como PDF.
- */
-export function exportOperationResults({ module, results, t }) {
-  exportPDF({
-    filename: `Resultados_${module.toLowerCase().replace(/\s+/g, '_')}_${getDateStamp()}`,
-    title: `${t('Resultados')} - ${module}`,
-    headers: [t('Fecha'), t('Entrada'), t('Estado'), t('Detalles')],
-    rows: results.map(r => [
-      formatTimestamp(r.timestamp),
-      r.input || '',
-      r.status || '',
-      r.message || '',
-    ])
-  });
-}
-
-// Exportar CSV se mantiene por si se necesita en el futuro, pero se renombra internamente
-export function exportCSV({ filename, headers, rows }) {
-  // Por ahora lo redirigimos a PDF si el usuario quiere "todo directo a pdf"
-  exportPDF({ filename, title: filename.replace(/_/g, ' '), headers, rows });
-}
-
-// ── Utilidades internas ──
-
-function getDateStamp() {
+// Funciones auxiliares para nombres de archivo y fechas
+export function getDateStamp() {
   return new Date().toISOString().slice(0, 10).replace(/-/g, '_');
 }
 
-function formatTimestamp(iso) {
+export function formatTimestamp(iso) {
   if (!iso) return new Date().toLocaleString();
   const d = new Date(iso);
   return d.toLocaleString('es-CO', {

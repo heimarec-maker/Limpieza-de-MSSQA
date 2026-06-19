@@ -145,6 +145,15 @@ router.post('/smw/consultar', async (req, res) => {
     // Step 2: Rfs
     const { list: rfsList, mensaje } = await smwSoapService.consultarRfs(codigoDireccion)
 
+    // Registrar Consulta en Log
+    await db.registrarLog(
+      codigoDireccion, 
+      'Sistema', // En este endpoint no pasamos usuario aún, se podría mejorar
+      'SMW_CONSULTA', 
+      'ÉXITO', 
+      `Consulta técnica de dirección SMW: ${direccion}`
+    )
+
     res.json({
       ok: true,
       data: {
@@ -152,11 +161,18 @@ router.post('/smw/consultar', async (req, res) => {
         codigoDireccion,
         cantidadRfs: rfsList.length,
         mensaje,
-        rfsList // Lo enviamos para que el front lo guarde y lo use al limpiar
+        rfsList
       }
     })
   } catch (err) {
     console.error('Error en /smw/consultar:', err.message)
+    await db.registrarLog(
+      'DIREC_ERR', 
+      'Sistema', 
+      'SMW_CONSULTA', 
+      'ERROR', 
+      `Fallo al consultar dirección [${direccion}]: ${err.message}`
+    )
     res.status(500).json({ ok: false, message: err.message || 'Error al consultar SMW.' })
   }
 })

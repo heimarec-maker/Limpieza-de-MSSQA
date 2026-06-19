@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import { getActivityLogs, clearActivityLogs } from '../services/activityLog'
 import { getDBActivityLogs } from '../services/limpiezaDbService'
-import { exportActivityLogs } from '../services/exportService'
+import { exportExcel } from '../services/exportService'
 import SubPage from '../components/SubPage'
 import LogDetailModal from '../components/LogDetailModal'
 import './AdminPanel.css'
@@ -139,11 +139,25 @@ export default function AdminPanel() {
     setShowConfirmClear(false)
   }
 
-  // Exportar CSV
-  const handleExport = () => {
+
+
+  const handleExportExcel = () => {
     if (filteredLogs.length === 0) return
-    exportActivityLogs(filteredLogs, t)
+    exportExcel({
+      filename: `Registro_Actividad_${new Date().toISOString().slice(0, 10)}`,
+      headers: [t('Fecha'), t('Usuario'), t('Acción'), t('Módulo'), t('Detalles'), t('Resultado')],
+      rows: filteredLogs.map(l => [
+        formatDate(l.timestamp),
+        l.usuario || '',
+        l.accion || '',
+        l.modulo || '',
+        l.detalles || '',
+        l.resultado || '',
+      ])
+    })
   }
+
+
 
   const formatDate = (iso) => {
     const d = new Date(iso)
@@ -259,8 +273,8 @@ export default function AdminPanel() {
           </div>
 
           <div className="toolbar-actions">
-            <button className="btn-toolbar" onClick={handleExport} title={t('Exportar PDF')}>
-              <Download size={16} /> {t('Exportar PDF')}
+            <button className="btn-toolbar" onClick={handleExportExcel} title={t('Exportar Excel')}>
+              <Database size={16} /> {t('Exportar Excel')}
             </button>
             <button
               className="btn-toolbar btn-toolbar-danger"

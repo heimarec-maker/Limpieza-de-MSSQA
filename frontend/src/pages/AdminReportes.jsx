@@ -149,7 +149,7 @@ export default function AdminReportes() {
           <div className="toolbar-filters">
             <div className="filter-group">
               <Calendar size={16} />
-              <select value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
+              <select className="premium-select" value={filterPeriod} onChange={e => setFilterPeriod(e.target.value)}>
                 <option value="Hoy">{t('Hoy')}</option>
                 <option value="Esta semana">{t('Esta semana')}</option>
                 <option value="Mes actual">{t('Mes actual')}</option>
@@ -159,7 +159,7 @@ export default function AdminReportes() {
             </div>
             <div className="filter-group">
               <Filter size={16} />
-              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
+              <select className="premium-select" value={filterCategory} onChange={e => setFilterCategory(e.target.value)}>
                 <option value="Todos">{t('Todas las categorías')}</option>
                 <option value="Seguridad">{t('Seguridad')}</option>
                 <option value="Operación">{t('Operación')}</option>
