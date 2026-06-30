@@ -16,6 +16,7 @@ const login = (req, res) => {
 
   authenticateUser(username, password, async (err, success) => {
     if (err) {
+      console.error('LDAP authentication error:', err);
       return res.status(500).json({ message: 'Error en la autenticación LDAP.' });
     }
 

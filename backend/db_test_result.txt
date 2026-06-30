@@ -1,6 +1,0 @@
-Intentando conectar a: tyrandbadm02vm02.etb.com.co:1543/MSSLTED
-❌ Fallo en conexión única: NJS-510: connection to host 10.111.9.61 port 1543 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=GqwpKCtKRELGQi9Tu2WPIQ==)
-Error: NJS-510: connection to host 10.111.9.61 port 1543 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=GqwpKCtKRELGQi9Tu2WPIQ==)
-    at Timeout.<anonymous> (D:\Limpieza de equipos\Limpieza-de-MSSQA\backend\node_modules\oracledb\lib\thin\sqlnet\networkSession.js:106:44)
-    at listOnTimeout (node:internal/timers:605:17)
-    at process.processTimers (node:internal/timers:541:7)

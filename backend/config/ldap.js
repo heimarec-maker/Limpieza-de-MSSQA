@@ -1,41 +1,135 @@
-
 import 'dotenv/config'
-import { authenticate } from 'ldap-authentication'
+import ldap from 'ldapjs'
+
+const escapeLDAPFilter = (value) => {
+  return String(value)
+    .replace(/([\\*()\0])/g, '\\$1')
+    .replace(/\0/g, '\\00')
+}
+
+const buildSearchFilters = (identifier) => {
+  const escaped = escapeLDAPFilter(identifier)
+  const filters = []
+
+  if (identifier.includes('@')) {
+    filters.push(`(mail=${escaped})`)
+  }
+
+  filters.push(`(uid=${escaped})`, `(cn=${escaped})`, `(sAMAccountName=${escaped})`)
+
+  if (process.env.LDAP_USERNAME_ATTRIBUTE) {
+    const attr = process.env.LDAP_USERNAME_ATTRIBUTE.trim()
+    if (attr && !filters.some((filter) => filter.includes(`(${attr}=`))) {
+      filters.push(`(${attr}=${escaped})`)
+    }
+  }
+
+  return filters
+}
+
+const getAttributeValue = (entry, attribute) => {
+  const attr = entry.attributes.find((item) => item.type === attribute)
+  return attr?.vals?.[0] || ''
+}
 
 //Función para validar usuarios
 const authenticateUser = async (username, password, callback) => {
-  // Decide dinámicamente el atributo de búsqueda (uid o mail) si el identificador parece un correo
-  const isEmail = typeof username === 'string' && username.includes('@');
-  const usernameAttr = isEmail ? 'mail' : (process.env.LDAP_USERNAME_ATTRIBUTE || 'uid');
+  const identifier = String(username || '').trim()
 
-  const options = {
-    ldapOpts: {
-      url: process.env.LDAP_URL,
-    },
-    adminDn: process.env.LDAP_ADMIN_DN,
-    adminPassword: process.env.LDAP_ADMIN_PASSWORD,
-    userPassword: password,
-    userSearchBase: process.env.LDAP_USER_SEARCH_BASE,
-    usernameAttribute: usernameAttr,
-    username: username,
-    attributes: ['uid', 'givenName', 'sn', 'mail', 'homePhone', 'etbDependencia', 'employeeType', 'employeeNumber', 'costCenterDescription', 'uidNumber', 'costCenter'],
-  };
+  if (!identifier || !password) {
+    return callback(null, null)
+  }
 
-  try {
-    const user = await authenticate(options);
+  const ldapUrl = process.env.LDAP_URL
+  const adminDn = process.env.LDAP_ADMIN_DN
+  const adminPassword = process.env.LDAP_ADMIN_PASSWORD
+  const searchBase = process.env.LDAP_USER_SEARCH_BASE
+  const timeout = parseInt(process.env.LDAP_BIND_TIMEOUT_MS || '5000', 10)
 
-    if (!user) {
-      return callback(null, null);
+  if (!ldapUrl || !adminDn || !adminPassword || !searchBase) {
+    return callback(new Error('Faltan variables de configuración LDAP'), null)
+  }
+
+  const attributes = ['uid', 'cn', 'mail', 'givenName', 'sn', 'homePhone', 'etbDependencia', 'employeeType', 'employeeNumber', 'costCenterDescription', 'uidNumber', 'costCenter']
+  const client = ldap.createClient({ url: ldapUrl, timeout, connectTimeout: timeout })
+
+  client.bind(adminDn, adminPassword, (adminErr) => {
+    if (adminErr) {
+      client.unbind(() => callback(adminErr, null))
+      return
     }
 
-    // Pasamos el 'uid' y 'password' al callback
-    callback(null, {
-      user,
-      uid: user.uid, // UID del usuario
-      password: password // Contraseña del usuario (NO se guarda en DB)
-    });
-  } catch (error) {
-    callback(error, null);
-  }
-};
-export default authenticateUser;
+    const filters = buildSearchFilters(identifier)
+    const searchOptions = {
+      filter: `(|${filters.join('')})`,
+      scope: 'sub',
+      attributes
+    }
+
+    client.search(searchBase, searchOptions, (searchErr, res) => {
+      if (searchErr) {
+        client.unbind(() => callback(searchErr, null))
+        return
+      }
+
+      let foundEntry = null
+
+      res.on('searchEntry', (entry) => {
+        if (!foundEntry) {
+          foundEntry = entry
+        }
+      })
+
+      res.on('error', (err) => {
+        client.unbind(() => callback(err, null))
+      })
+
+      res.on('end', (result) => {
+        client.unbind(() => {
+          if (result.status !== 0) {
+            return callback(new Error(`LDAP search finished with status ${result.status}`), null)
+          }
+
+          if (!foundEntry) {
+            return callback(null, null)
+          }
+
+          const entry = foundEntry
+          const user = {
+            dn: entry.objectName,
+            uid: getAttributeValue(entry, 'uid') || getAttributeValue(entry, 'cn') || identifier,
+            cn: getAttributeValue(entry, 'cn') || '',
+            givenName: getAttributeValue(entry, 'givenName') || '',
+            sn: getAttributeValue(entry, 'sn') || '',
+            mail: getAttributeValue(entry, 'mail') || '',
+            employeeNumber: getAttributeValue(entry, 'employeeNumber') || '',
+            employeeType: getAttributeValue(entry, 'employeeType') || '',
+            etbDependencia: getAttributeValue(entry, 'etbDependencia') || '',
+            homePhone: getAttributeValue(entry, 'homePhone') || '',
+            costCenterDescription: getAttributeValue(entry, 'costCenterDescription') || '',
+            uidNumber: getAttributeValue(entry, 'uidNumber') || '',
+            costCenter: getAttributeValue(entry, 'costCenter') || ''
+          }
+
+          const userClient = ldap.createClient({ url: ldapUrl, timeout, connectTimeout: timeout })
+
+          userClient.bind(entry.objectName, password, (userBindErr) => {
+            userClient.unbind(() => {
+              if (userBindErr) {
+                return callback(null, null)
+              }
+
+              return callback(null, {
+                user,
+                uid: user.uid,
+                password
+              })
+            })
+          })
+        })
+      })
+    })
+  })
+}
+
+export default authenticateUser

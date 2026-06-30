@@ -65,3 +65,29 @@ export function formatTimestamp(iso) {
     hour: '2-digit', minute: '2-digit'
   });
 }
+
+/**
+ * Exporta resultados de operación (historial / lote) a Excel/CSV.
+ * Recibe un objeto: { module, results, t }
+ * - `results` es un array de objetos que idealmente contienen `input`, `status`, `message`, `timestamp`.
+ */
+export function exportOperationResults({ module = 'Reporte', results = [], t } = {}) {
+  if (!Array.isArray(results) || results.length === 0) return;
+
+  const filename = `${module}_${getDateStamp()}`;
+  const headers = [
+    t ? t('Entrada') : 'Entrada',
+    t ? t('Estado') : 'Estado',
+    t ? t('Mensaje') : 'Mensaje',
+    t ? t('Fecha') : 'Fecha'
+  ];
+
+  const rows = results.map(r => [
+    r.input || r.serial || r.raw || '',
+    r.status || r.result || '',
+    r.message || r.detalle || r.etapa || '',
+    formatTimestamp(r.timestamp || r.ejecutado_at || r.created_at || '')
+  ]);
+
+  exportExcel({ filename, headers, rows });
+}

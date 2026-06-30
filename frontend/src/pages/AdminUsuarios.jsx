@@ -5,7 +5,7 @@ import {
   Users, UserPlus, Search, Filter,
   Shield, CheckCircle, XCircle,
   Activity, Mail, Edit, Trash2, Download,
-  X, Save, Lock, Unlock, AlertTriangle, Briefcase, Loader
+  X, Save, Lock, Unlock, AlertTriangle, Briefcase, Loader, Database
 } from 'lucide-react';
 import './AdminPanel.css';
 import { exportExcel } from '../services/exportService';
