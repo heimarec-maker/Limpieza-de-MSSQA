@@ -55,6 +55,7 @@ const authenticateUser = async (username, password, callback) => {
 
   client.bind(adminDn, adminPassword, (adminErr) => {
     if (adminErr) {
+      adminErr.code = adminErr.code || 'LDAP_ADMIN_BIND_FAILED'
       client.unbind(() => callback(adminErr, null))
       return
     }
@@ -68,7 +69,9 @@ const authenticateUser = async (username, password, callback) => {
 
     client.search(searchBase, searchOptions, (searchErr, res) => {
       if (searchErr) {
-        client.unbind(() => callback(searchErr, null))
+        const e = new Error('LDAP search error')
+        e.code = searchErr.code || 'LDAP_SEARCH_ERROR'
+        client.unbind(() => callback(e, null))
         return
       }
 
@@ -87,11 +90,15 @@ const authenticateUser = async (username, password, callback) => {
       res.on('end', (result) => {
         client.unbind(() => {
           if (result.status !== 0) {
-            return callback(new Error(`LDAP search finished with status ${result.status}`), null)
+            const e = new Error(`LDAP search finished with status ${result.status}`)
+            e.code = 'LDAP_SEARCH_STATUS'
+            return callback(e, null)
           }
 
           if (!foundEntry) {
-            return callback(null, null)
+            const e = new Error('Usuario no encontrado')
+            e.code = 'USER_NOT_FOUND'
+            return callback(e, null)
           }
 
           const entry = foundEntry
@@ -116,7 +123,14 @@ const authenticateUser = async (username, password, callback) => {
           userClient.bind(entry.objectName, password, (userBindErr) => {
             userClient.unbind(() => {
               if (userBindErr) {
-                return callback(null, null)
+                const e = new Error(userBindErr.message || 'Error en bind de usuario')
+                // Detect common ldapjs invalid credentials
+                if (userBindErr.name === 'InvalidCredentialsError' || /invalid/i.test(String(userBindErr.message))) {
+                  e.code = 'INVALID_CREDENTIALS'
+                } else {
+                  e.code = userBindErr.code || 'USER_BIND_ERROR'
+                }
+                return callback(e, null)
               }
 
               return callback(null, {

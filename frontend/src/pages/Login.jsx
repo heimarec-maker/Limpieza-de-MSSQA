@@ -75,11 +75,15 @@ const Login = () => {
 
       // Guardar sesión activa en el context
       login({
-        username: user.username || email.split('@')[0],
-        email: user.email || email,
+        username: user.nombre || user.usuario || email.split('@')[0],
+        displayName: user.displayName || user.nombre || user.usuario || email.split('@')[0],
+        nombre: user.nombre || '',
+        email: user.correo || user.email || email,
+        correo: user.correo || user.email || email,
         role: user.role || 'user',
-        cargo: user.cargo || 'Técnico ETB',
+        cargo: user.cargo || '',
         area: user.area || 'Operaciones',
+        employeeType: user.employeeType || '',
         ...user
       });
 

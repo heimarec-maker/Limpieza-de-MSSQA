@@ -17,7 +17,16 @@ const login = (req, res) => {
   authenticateUser(username, password, async (err, success) => {
     if (err) {
       console.error('LDAP authentication error:', err);
-      return res.status(500).json({ message: 'Error en la autenticación LDAP.' });
+      // Map LDAP error codes to HTTP responses
+      const code = err.code || ''
+      if (code === 'USER_NOT_FOUND') {
+        return res.status(404).json({ message: 'Usuario no existe.' })
+      }
+      if (code === 'INVALID_CREDENTIALS') {
+        return res.status(401).json({ message: 'Contraseña incorrecta.' })
+      }
+      // Other LDAP/internal errors
+      return res.status(500).json({ message: 'Error en la autenticación LDAP.' })
     }
 
     if (!success || !success.user || !success.uid) {
@@ -44,7 +53,7 @@ const login = (req, res) => {
       if (dbUser) {
         // Actualizar campos no sensibles y mantener rol si ya existe
         dbUser.nombre = (givenName && sn) ? `${givenName} ${sn}`.trim() : (givenName || dbUser.nombre);
-        dbUser.apellido = sn || dbUser.apellido;
+        // Mantener apellido en DB pero no lo enviaremos en la respuesta
         dbUser.correo = mail || dbUser.correo;
         dbUser.numero_identificacion = employeeNumber || dbUser.numero_identificacion;
         dbUser.employeeType = employeeType || dbUser.employeeType;
@@ -57,7 +66,7 @@ const login = (req, res) => {
         const newUser = new User({
           usuario: uid,
           nombre: (givenName && sn) ? `${givenName} ${sn}`.trim() : (givenName || ''),
-          apellido: sn || '',
+          apellido: sn || '', // Se mantiene en BD pero no se envía en respuesta
           numero_identificacion: employeeNumber || '',
           employeeType: employeeType || '',
           etbDependencia: etbDependencia || '',
@@ -84,7 +93,6 @@ const login = (req, res) => {
         usuario: dbUser.usuario,
         role: roleName,
         nombre: dbUser.nombre,
-        apellido: dbUser.apellido,
         employeeType: dbUser.employeeType || '',
         area: dbUser.etbDependencia || '',
         correo: dbUser.correo,
@@ -95,6 +103,9 @@ const login = (req, res) => {
         estado: dbUser.estado || 'Activo'
       };
 
+      // displayName es el mismo que nombre (ya contiene nombre completo)
+      req.session.user.displayName = req.session.user.nombre || req.session.user.usuario
+
       req.session.save((err) => {
         if (err) {
           return res.status(500).json({ ok: false, message: 'Error interno al guardar la sesión.' });
@@ -103,6 +114,7 @@ const login = (req, res) => {
         // Map role to front-end expected values
         const frontendRole = (roleName === 'Administrador') ? 'admin' : 'user';
 
+        // Return session user including displayName; frontend should use `displayName` for header/profile
         return res.status(200).json({ ok: true, user: { ...req.session.user, role: frontendRole } });
       });
     } catch (dbError) {

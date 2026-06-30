@@ -29,6 +29,8 @@ export default function Navbar() {
 
   const { currentUser, logout } = useUser()
   const isAdmin = currentUser?.role === 'admin'
+  const displayName = currentUser ? (currentUser.displayName || currentUser.nombre || currentUser.usuario || currentUser.username || '') : ''
+  const firstName = displayName.split(' ')[0] || ''
 
   // Seleccionar links según rol
   const navItems = isAdmin ? adminNavItems : userNavItems
@@ -94,13 +96,13 @@ export default function Navbar() {
                 {currentUser.avatar ? (
                   <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} />
                 ) : (
-                  currentUser.username.charAt(0).toUpperCase()
+                  (displayName.charAt(0) || '').toUpperCase()
                 )}
               </div>
               <div className="user-info-wrapper">
                 <span className="user-greeting">{t('Hola,')}</span>
                 <span className="user-name">
-                  {currentUser.username}
+                  {firstName}
                   {isAdmin && <span className="role-badge admin-badge">Admin</span>}
                 </span>
               </div>
@@ -165,13 +167,13 @@ export default function Navbar() {
                       {currentUser.avatar ? (
                         <img src={currentUser.avatar} alt="Avatar" style={{width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%'}} />
                       ) : (
-                        currentUser.username.charAt(0).toUpperCase()
+                        (displayName.charAt(0) || '').toUpperCase()
                       )}
                     </div>
                     <div>
                       <p className="mobile-greeting">{t('Hola,')}</p>
                       <p className="mobile-username">
-                        {currentUser.username}
+                        {firstName}
                         {isAdmin && <span className="role-badge admin-badge" style={{ marginLeft: '0.4rem' }}>Admin</span>}
                       </p>
                     </div>

@@ -26,12 +26,26 @@ export default function Perfil() {
 
   const [editMode, setEditMode] = useState(false)
   const [formData, setFormData] = useState({
-    username:  currentUser?.username  || '',
-    email:     currentUser?.email     || '',
-    cargo:     currentUser?.cargo     || 'Técnico ETB',
-    area:      currentUser?.area      || 'Operaciones',
+    username:  currentUser ? (currentUser.displayName || currentUser.nombre || currentUser.usuario || currentUser.username || '') : '',
+    email:     currentUser ? (currentUser.correo || currentUser.email || '') : '',
+    telefono:  currentUser ? (currentUser.telefono || '') : '',
+    area:      currentUser ? (currentUser.area || currentUser.etbDependencia || 'Operaciones') : 'Operaciones',
     avatar:    currentUser?.avatar    || '',
+    employeeType: currentUser ? (currentUser.employeeType || '') : '',
   })
+
+  // Si la sesión (currentUser) se carga después del montaje, sincronizar el formulario
+  useEffect(() => {
+    if (!currentUser) return
+    setFormData({
+      username: (currentUser.displayName || currentUser.nombre || currentUser.usuario || currentUser.username || ''),
+      email: (currentUser.correo || currentUser.email || ''),
+      telefono: (currentUser.telefono || ''),
+      area: (currentUser.area || currentUser.etbDependencia || 'Operaciones'),
+      avatar: currentUser.avatar || '',
+      employeeType: currentUser.employeeType || ''
+    })
+  }, [currentUser])
   const [saved, setSaved] = useState(false)
   const [profileErrors, setProfileErrors] = useState({})
 
@@ -159,8 +173,8 @@ export default function Perfil() {
       }
     }
 
-    if (!formData.cargo.trim()) {
-      errors.cargo = t('El cargo es obligatorio.');
+    if (!formData.telefono.trim()) {
+      errors.telefono = t('El teléfono es obligatorio.');
     }
     if (!formData.area.trim()) {
       errors.area = t('El área es obligatoria.');
@@ -212,7 +226,8 @@ export default function Perfil() {
           {/* Nombre y rol */}
           <div className="perfil-hero-info">
             <h1 className="perfil-name">{formData.username}</h1>
-            <p className="perfil-role">{formData.cargo} · {formData.area}</p>
+            <p className="perfil-role">{formData.employeeType || formData.cargo} · {formData.area}</p>
+            {formData.telefono && <p className="perfil-phone">{t('Teléfono')}: {formData.telefono}</p>}
             <span className="perfil-badge">{t('Activo')}</span>
           </div>
 
@@ -291,14 +306,22 @@ export default function Perfil() {
               placeholder="usuario@etb.com"
               error={profileErrors.email}
             />
-            <Field
-              label={t("Cargo")}
-              name="cargo"
-              value={formData.cargo}
-              editMode={editMode}
-              onChange={handleChange}
-              error={profileErrors.cargo}
-            />
+              <Field
+                label={t("Tipo de empleado")}
+                name="employeeType"
+                value={formData.employeeType}
+                editMode={editMode}
+                onChange={handleChange}
+                error={profileErrors.employeeType}
+              />
+              <Field
+                label={t("Teléfono")}
+                name="telefono"
+                value={formData.telefono}
+                editMode={editMode}
+                onChange={handleChange}
+                error={profileErrors.telefono}
+              />
             <Field
               label={t("Área")}
               name="area"
