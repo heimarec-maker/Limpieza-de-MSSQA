@@ -6,6 +6,10 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     plugins: [react()],
+    build: {
+      outDir: '../.dist',
+      emptyOutDir: true,
+    },
     server: {
       proxy: {
         '/api': {
@@ -16,3 +20,4 @@ export default defineConfig(({ mode }) => {
     },
   }
 })
+
