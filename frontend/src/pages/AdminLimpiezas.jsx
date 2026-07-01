@@ -360,13 +360,13 @@ function LogDetailModal({ log, allLogs, onClose }) {
   const ec = ETAPA_CONFIG[log.etapa]
   const d  = new Date(log.ejecutado_at)
   
-  // Obtener todos los registros del mismo serial (relacionados)
+  // Obtener solo los registros del mismo serial y mismo usuario
   const relatedLogs = useMemo(() => {
     if (!allLogs) return []
-    return allLogs.filter(l => l.serial_nbr === log.serial_nbr).sort((a, b) => 
+    return allLogs.filter(l => l.serial_nbr === log.serial_nbr && l.usuario === log.usuario).sort((a, b) => 
       new Date(b.ejecutado_at) - new Date(a.ejecutado_at)
     )
-  }, [allLogs, log.serial_nbr])
+  }, [allLogs, log.serial_nbr, log.usuario])
 
   return (
     <div className="confirm-overlay" onClick={onClose}>
