@@ -3,8 +3,7 @@
  * Servicio frontend que consume la API REST del servidor de Limpieza de Equipos.
  * Todas las llamadas van a /api/* (proxiado por Vite → http://localhost:3001)
  */
-
-const API = '/api'
+const API = import.meta.env.VITE_API_URL || '/api'
 
 // ─── OP 1: Consultar estado de un equipo por serial ──────────────────────────
 export async function consultarEquipo(serial, mac = '') {
