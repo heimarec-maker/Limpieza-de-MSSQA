@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { PlusCircle, Download } from 'lucide-react'
 import SubPage from '../components/SubPage'
+import AlertModal from '../components/AlertModal'
 import { addActivityLog } from '../services/activityLog'
 import { exportOperationResults } from '../services/exportService'
 import './CreacionEquipos.css'
@@ -186,11 +187,12 @@ export default function CreacionEquipos() {
             </button>
           </form>
 
-          {result && (
-            <div className={`result-box ${result.type}`}>
-              {result.message}
-            </div>
-          )}
+          <AlertModal
+            open={!!result}
+            type={result?.type}
+            message={result?.message}
+            onClose={() => setResult(null)}
+          />
 
           {/* BOTÓN EXPORTAR */}
           {history.length > 0 && (

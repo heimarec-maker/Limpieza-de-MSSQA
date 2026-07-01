@@ -75,8 +75,8 @@ const Login = () => {
 
       // Guardar sesión activa en el context
       login({
-        username: user.nombre || user.usuario || email.split('@')[0],
-        displayName: user.displayName || user.nombre || user.usuario || email.split('@')[0],
+        username: user.usuario || user.nombre || email.split('@')[0],
+        displayName: user.nombre || user.displayName || user.usuario || email.split('@')[0],
         nombre: user.nombre || '',
         email: user.correo || user.email || email,
         correo: user.correo || user.email || email,

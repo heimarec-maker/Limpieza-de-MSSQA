@@ -7,6 +7,8 @@ import {
   ChevronDown, ChevronUp, Layers
 } from 'lucide-react'
 import SubPage from '../components/SubPage'
+import AlertModal from '../components/AlertModal'
+import ImportPreviewModal from '../components/ImportPreviewModal'
 import { addActivityLog } from '../services/activityLog'
 import { exportOperationResults } from '../services/exportService'
 import { ejecutarLimpieza, consultarEquipo, getLogs } from '../services/limpiezaDbService'
@@ -15,8 +17,8 @@ import './LimpiezaEquipos.css'
 const getUsername = () => {
   try {
     const u = JSON.parse(localStorage.getItem('currentUser'))
-    return u?.username || 'Desconocido'
-  } catch { return 'Desconocido' }
+    return u?.username || 'Sistema'
+  } catch { return 'Sistema' }
 }
 
 const mapResultType = (type) => {
@@ -40,9 +42,20 @@ function parsearEquipos(text) {
   return text
     .split(/\r?\n/)
     .filter(l => l.trim())
+    .filter(l => !l.trim().toUpperCase().startsWith('REM '))
+    .filter(l => !l.trim().toUpperCase().startsWith('SET '))
     .map(linea => {
-      const partes = linea.split(/[,\t;]+/).map(p => p.trim()).filter(Boolean)
-      return { serial: partes[0] || null, mac: partes[1] || null, raw: linea.trim() }
+      // Limpiar sintaxis típica de SQL: borrar todo hasta el "VALUES (" si existe
+      let limpia = linea.trim()
+      if (limpia.toUpperCase().includes('VALUES')) {
+        limpia = limpia.replace(/^.*?VALUES\s*\(/i, '')
+      }
+      limpia = limpia.replace(/\);?$/g, '') // borrar ); final
+                     .replace(/['"]/g, '') // borrar comillas
+                     .trim()
+
+      const partes = limpia.split(/[,\t;]+/).map(p => p.trim()).filter(Boolean)
+      return { serial: partes[0] || null, raw: linea.trim() }
     })
 }
 
@@ -52,14 +65,17 @@ export default function LimpiezaEquipos() {
 
   // ── Individual ──
   const [serial, setSerial]   = useState('')
-  const [mac, setMac]         = useState('')
 
   // ── Masiva ──
   const [masivaText, setMasivaText]           = useState('')
   const [parsedEquipos, setParsedEquipos]     = useState([])   // Vista previa
   const [showPreview, setShowPreview]         = useState(false)
   const [batchResults, setBatchResults]       = useState([])   // Resultados del lote
-  const [batchProgress, setBatchProgress]     = useState(0)    // 0-100
+  const [batchProgress, setBatchProgress]     = useState(0)
+  
+  // ── Import / Preview Modal ──
+  const [previewModalOpen, setPreviewModalOpen] = useState(false)
+  const [previewSerials, setPreviewSerials]     = useState([])    // 0-100
   const [batchCurrent, setBatchCurrent]       = useState(0)    // equipo actual
   const [batchTotal, setBatchTotal]           = useState(0)
   const [batchRunning, setBatchRunning]       = useState(false)
@@ -103,16 +119,30 @@ export default function LimpiezaEquipos() {
     setResult(null)
   }, [masivaText])
 
-  // ── Importar CSV / TXT ──
+  // ── Importar CSV / TXT / SQL ──
   const handleImportFile = (e) => {
     const file = e.target.files[0]
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      setMasivaText(ev.target.result)
+      const txt = ev.target.result
+      const parsed = parsearEquipos(txt)
+      const validSerials = parsed.map(p => p.serial).filter(Boolean)
+      
+      if (validSerials.length > 0) {
+        setPreviewSerials(validSerials)
+        setPreviewModalOpen(true)
+      } else {
+        setResult({ type: 'error', message: t('No se encontraron seriales válidos en el archivo importado.') })
+      }
     }
     reader.readAsText(file, 'UTF-8')
     e.target.value = ''
+  }
+
+  const handleConfirmImport = (confirmedSerials) => {
+    setPreviewModalOpen(false)
+    setMasivaText(confirmedSerials.join('\n'))
   }
 
   // ── Limpieza individual ──
@@ -129,10 +159,10 @@ export default function LimpiezaEquipos() {
     }
 
     try {
-      const res = await ejecutarLimpieza(serial, mac, getUsername())
+      const res = await ejecutarLimpieza(serial, '', getUsername(), false)
       setResult(res)
       setHistory(prev => [{
-        input: mac ? `${serial} | ${mac}` : serial,
+        input: serial,
         status: mapResultType(res.type),
         message: res.message,
         timestamp: new Date().toISOString()
@@ -141,7 +171,7 @@ export default function LimpiezaEquipos() {
         usuario: getUsername(),
         accion: 'Limpieza',
         modulo: 'Limpieza Equipos (Individual)',
-        detalles: `Serial: ${serial}${mac ? ` | MAC: ${mac}` : ''}`,
+        detalles: `Serial: ${serial}`,
         resultado: mapResultType(res.type),
       })
       cargarMisLogs()
@@ -153,10 +183,10 @@ export default function LimpiezaEquipos() {
 
   // ── Limpieza masiva con progreso ──
   const handleLimpiarMasiva = async () => {
-    const validos = parsedEquipos.filter(eq => eq.serial && eq.mac)
+    const validos = parsedEquipos.filter(eq => eq.serial)
 
     if (validos.length === 0) {
-      setResult({ type: 'error', message: t('No se detectaron pares Serial + MAC válidos. Formato: Serial, MAC (una por línea).') })
+      setResult({ type: 'error', message: t('No se detectaron seriales válidos. Ingrese un serial por línea.') })
       return
     }
 
@@ -182,16 +212,15 @@ export default function LimpiezaEquipos() {
 
       // Marcar el equipo como "procesando"
       const rowProcesando = {
-        serial: eq.serial, mac: eq.mac, status: 'processing', message: 'Procesando...'
+        serial: eq.serial, status: 'processing', message: 'Procesando...'
       }
       setBatchResults(prev => [...prev, rowProcesando])
 
       try {
-        const res = await ejecutarLimpieza(eq.serial, eq.mac, getUsername())
+        const res = await ejecutarLimpieza(eq.serial, '', getUsername(), true)
 
         const row = {
           serial: eq.serial,
-          mac: eq.mac,
           status: res.type,      // 'success' | 'warning' | 'error'
           message: res.message,
         }
@@ -208,7 +237,7 @@ export default function LimpiezaEquipos() {
         })
 
         setHistory(prev => [{
-          input: `${eq.serial} | ${eq.mac}`,
+          input: eq.serial,
           status: mapResultType(res.type),
           message: res.message,
           timestamp: new Date().toISOString()
@@ -217,7 +246,7 @@ export default function LimpiezaEquipos() {
       } catch {
         errores++
         const row = {
-          serial: eq.serial, mac: eq.mac,
+          serial: eq.serial,
           status: 'error', message: 'Error de red o servidor'
         }
         resultados.push(row)
@@ -227,7 +256,7 @@ export default function LimpiezaEquipos() {
           return updated
         })
         setHistory(prev => [{
-          input: `${eq.serial} | ${eq.mac}`,
+          input: eq.serial,
           status: 'Error', message: 'Error de red o servidor',
           timestamp: new Date().toISOString()
         }, ...prev])
@@ -269,7 +298,7 @@ export default function LimpiezaEquipos() {
   // ── Exportar resultados del lote ──
   const handleExportarLote = () => {
     const rows = batchResults.map(r => ({
-      input: `${r.serial} | ${r.mac}`,
+      input: r.serial,
       status: r.status,
       message: r.message,
       timestamp: new Date().toISOString()
@@ -277,7 +306,6 @@ export default function LimpiezaEquipos() {
     exportOperationResults({ module: 'Limpieza_Masiva', results: rows, t })
   }
 
-  const [queryMac, setQueryMac]       = useState('')
 
   const handleConsultar = async (e) => {
     e.preventDefault()
@@ -290,13 +318,13 @@ export default function LimpiezaEquipos() {
     setResult(null)
 
     try {
-      const res = await consultarEquipo(querySerial, queryMac)
+      const res = await consultarEquipo(querySerial)
       setQueryResult(res)
       addActivityLog({
         usuario: getUsername(),
         accion: 'Consulta',
         modulo: 'Limpieza Equipos',
-        detalles: `Consulta serial: ${querySerial}${queryMac ? ` | MAC: ${queryMac}` : ''}`,
+        detalles: `Consulta serial: ${querySerial}`,
         resultado: mapResultType(res.type),
       })
     } catch {
@@ -306,8 +334,8 @@ export default function LimpiezaEquipos() {
   }
 
   // ── Stats del textarea masiva ──
-  const validCount   = parsedEquipos.filter(e => e.serial && e.mac).length
-  const invalidCount = parsedEquipos.filter(e => e.serial && !e.mac).length
+  const validCount   = parsedEquipos.filter(e => e.serial).length
+  const invalidCount = 0 // MAC ya no es requerida
 
   return (
     <SubPage
@@ -338,25 +366,28 @@ export default function LimpiezaEquipos() {
               <div className="form-row">
                 <div className="form-group">
                   <label>{t('Serial del Equipo')}</label>
-                  <input
-                    type="text"
-                    placeholder="Ej. ZTE123456"
-                    value={serial}
-                    onChange={e => setSerial(e.target.value)}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>{t('Dirección MAC')}</label>
-                  <input
-                    type="text"
-                    placeholder="Ej: AAAAAAAAA115"
-                    value={mac}
-                    onChange={e => setMac(e.target.value)}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Ej. ZTE123456"
+                      value={serial}
+                      onChange={e => setSerial(e.target.value)}
+                      style={{ width: '100%', paddingRight: serial ? '2.5rem' : undefined }}
+                    />
+                    {serial && (
+                      <button type="button" onClick={() => setSerial('')}
+                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                          background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)',
+                          display: 'flex', alignItems: 'center', padding: '0.2rem' }}
+                        title="Limpiar">
+                        <XCircle size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-                {loading ? t('Procesando...') : t('Iniciar Limpieza')}
+                {loading ? t('Procesando...') : t('Limpiar')}
               </button>
             </form>
           )}
@@ -368,19 +399,19 @@ export default function LimpiezaEquipos() {
               {/* Barra de herramientas masiva */}
               <div className="masiva-toolbar">
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Upload size={14} /> Importar CSV / TXT
-                  <input type="file" accept=".csv,.txt,.xlsx" style={{ display: 'none' }} onChange={handleImportFile} />
+                  <Upload size={14} /> Importar SQL / CSV
+                  <input type="file" accept=".csv,.txt,.xlsx,.sql" style={{ display: 'none' }} onChange={handleImportFile} />
                 </label>
                 <span className="masiva-hint">
-                  Formato: <code>Serial, MAC</code> (una por línea, separados por coma, tabulación o punto y coma)
+                  Formato: <code>Serial</code> (uno por línea)
                 </span>
               </div>
 
               <div className="form-group" style={{ marginBottom: '0.75rem' }}>
-                <label>{t('Listado de equipos (Serial, MAC por línea)')}</label>
+                <label>{t('Listado de equipos (un Serial por línea)')}</label>
                 <textarea
                   rows="7"
-                  placeholder={"ZTE123456, AAAAAAAAA115\nTVBOXSN0000001, BBBBBBBB9900\nZTEG87654328, CCCCCCCC1122"}
+                  placeholder={"ZTE123456\nTVBOXSN0000001\nZTEG87654328"}
                   value={masivaText}
                   onChange={e => setMasivaText(e.target.value)}
                   disabled={batchRunning}
@@ -394,11 +425,6 @@ export default function LimpiezaEquipos() {
                   <span className="stat-pill success">
                     <CheckCircle size={12} /> {validCount} válido(s)
                   </span>
-                  {invalidCount > 0 && (
-                    <span className="stat-pill warning">
-                      <AlertTriangle size={12} /> {invalidCount} sin MAC (se omitirá(n))
-                    </span>
-                  )}
                   <span className="stat-pill info">
                     <FileText size={12} /> {parsedEquipos.length} línea(s) total
                   </span>
@@ -424,20 +450,18 @@ export default function LimpiezaEquipos() {
                       <tr>
                         <th>#</th>
                         <th>Serial</th>
-                        <th>MAC</th>
                         <th>Estado</th>
                       </tr>
                     </thead>
                     <tbody>
                       {parsedEquipos.slice(0, 20).map((eq, i) => (
-                        <tr key={i} className={!eq.serial || !eq.mac ? 'row-invalid' : ''}>
+                        <tr key={i}>
                           <td>{i + 1}</td>
                           <td><code>{eq.serial || '—'}</code></td>
-                          <td><code>{eq.mac || '—'}</code></td>
                           <td>
-                            {eq.serial && eq.mac
+                            {eq.serial
                               ? <span className="badge-ok"><CheckCircle size={11} /> OK</span>
-                              : <span className="badge-err"><AlertTriangle size={11} /> Falta MAC</span>
+                              : <span className="badge-err"><AlertTriangle size={11} /> Sin serial</span>
                             }
                           </td>
                         </tr>
@@ -535,7 +559,6 @@ export default function LimpiezaEquipos() {
                           {r.status === 'processing' && <RefreshCw size={14} style={{ animation: 'spin 0.8s linear infinite' }} />}
                         </span>
                         <span className="batch-result-serial"><code>{r.serial}</code></span>
-                        <span className="batch-result-mac"><code>{r.mac}</code></span>
                         <span className="batch-result-msg">{r.message}</span>
                       </div>
                     ))}
@@ -546,11 +569,12 @@ export default function LimpiezaEquipos() {
           )}
 
           {/* Mensaje resultado general */}
-          {result && (
-            <div className={`result-box ${result.type}`} style={{ marginTop: '1.5rem' }}>
-              {result.message}
-            </div>
-          )}
+          <AlertModal
+            open={!!result}
+            type={result?.type}
+            message={result?.message}
+            onClose={() => setResult(null)}
+          />
         </div>
 
         {/* ══ PANEL DE CONSULTA ══ */}
@@ -560,24 +584,37 @@ export default function LimpiezaEquipos() {
             <div className="form-row">
               <div className="form-group">
                 <label>{t('Serial del Equipo')}</label>
-                <input
-                  type="text"
-                  placeholder={t('Ej: ZTE12345')}
-                  value={querySerial}
-                  onChange={e => setQuerySerial(e.target.value)}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder={t('Ej: ZTE12345')}
+                    value={querySerial}
+                    onChange={e => setQuerySerial(e.target.value)}
+                    style={{ width: '100%', paddingRight: querySerial ? '2.5rem' : undefined }}
+                  />
+                  {querySerial && (
+                    <button type="button" onClick={() => setQuerySerial('')}
+                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
+                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)',
+                        display: 'flex', alignItems: 'center', padding: '0.2rem' }}
+                      title="Limpiar">
+                      <XCircle size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            <button type="submit" className="btn btn-primary" disabled={queryLoading} style={{ width: '100%' }}>
-              {queryLoading ? t('Consultando...') : t('Consultar Equipos')}
+            <button type="submit" className="btn btn-primary" disabled={queryLoading} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
+              {queryLoading ? <><RefreshCw size={16} className="spin-animation" /> {t('Consultando...')}</> : <><Search size={16} /> {t('Consultar')}</>}
             </button>
           </form>
 
-          {queryResult && (
-            <div className={`result-box ${queryResult.type}`}>
-              {queryResult.message}
-            </div>
-          )}
+          <AlertModal
+            open={!!queryResult}
+            type={queryResult?.type}
+            message={queryResult?.message}
+            onClose={() => setQueryResult(null)}
+          />
         </div>
 
         {/* ══ EXPORTAR SESIÓN ══ */}
@@ -611,7 +648,12 @@ export default function LimpiezaEquipos() {
             </button>
           </div>
 
-          {logsError && <div className="result-box error">{logsError}</div>}
+          <AlertModal
+            open={!!logsError}
+            type="error"
+            message={logsError}
+            onClose={() => setLogsError(null)}
+          />
 
           {!logsError && dbLogs.length === 0 && !logsLoading && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--clr-muted)' }}>
@@ -680,6 +722,13 @@ export default function LimpiezaEquipos() {
         </div>
 
       </div>
+
+      <ImportPreviewModal 
+        isOpen={previewModalOpen}
+        fileSerials={previewSerials}
+        onClose={() => setPreviewModalOpen(false)}
+        onConfirm={handleConfirmImport}
+      />
     </SubPage>
   )
 }
