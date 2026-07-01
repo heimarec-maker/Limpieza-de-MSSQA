@@ -36,11 +36,10 @@ router.get('/equipos/:serial', async (req, res) => {
 
 router.post('/limpieza/:serial', async (req, res) => {
   const { serial } = req.params
-  const { usuario, mac } = req.body
+  const { usuario, mac = '', esMasivo = false } = req.body
   const serialUp = serial.toUpperCase()
 
   try {
-    if (!mac) return res.status(400).json({ ok: false, message: 'La MAC es obligatoria.' })
 
     const equipo = await equipmentService.validarEquipo(serialUp)
     if (!equipo) return res.status(404).json({ ok: false, message: `El equipo "${serial}" no existe.` })
@@ -50,9 +49,9 @@ router.post('/limpieza/:serial', async (req, res) => {
       return res.json({ ok: true, advertencia: true, message: `El equipo ya está en estado ${estadoActual}.` })
     }
 
-    await equipmentService.ejecutarBorrado(serialUp, usuario)
-    const filasItem = await equipmentService.limpiarServItem(serialUp, usuario)
-    const filasReq = await equipmentService.limpiarServReq(serialUp, usuario)
+    await equipmentService.ejecutarBorrado(serialUp, usuario, esMasivo)
+    const filasItem = await equipmentService.limpiarServItem(serialUp, usuario, esMasivo)
+    const filasReq = await equipmentService.limpiarServReq(serialUp, usuario, esMasivo)
 
     res.json({
       ok: true,
@@ -72,15 +71,22 @@ router.get('/actividad', async (_req, res) => {
     const actividades = (logs || []).map(log => {
       let resultado = log.resultado === 'ÉXITO' ? 'Éxito' : log.resultado === 'NO_ENCONTRADO' ? 'Advertencia' : 'Error'
       
+      // Sanitizar etapa y saber si es masivo
+      const etapaStr = log.etapa || ''
+      const esMasivo = etapaStr.includes('MASIVO') || etapaStr.includes('MASIVA')
+      const esIndividual = etapaStr.includes('INDIVIDUAL')
+      
+      const tipoOperacion = esMasivo ? ' (Masiva)' : (esIndividual ? ' (Individual)' : '')
+
       // Determinar módulo y acción según la etapa
-      let modulo = 'Limpieza de Equipos'
+      let modulo = 'Limpieza de Equipos' + tipoOperacion
       let accion = 'Limpieza'
       
-      if (log.etapa?.startsWith('SMW_')) {
-        modulo = 'Limpieza de SMW'
+      if (etapaStr.startsWith('SMW_')) {
+        modulo = 'Limpieza de SMW' + tipoOperacion
       }
       
-      if (log.etapa === 'VALIDACION' || log.etapa === 'SMW_CONSULTA') {
+      if (etapaStr === 'VALIDACION' || etapaStr.includes('CONSULTA')) {
         accion = 'Consulta'
       }
 
@@ -137,7 +143,9 @@ router.post('/login', (req, res) => {
  * 2. Consulta RFS para obtener el listado y cantidad
  */
 router.post('/smw/consultar', async (req, res) => {
-  const { direccion, usuario = 'Sistema' } = req.body
+  const { direccion, usuario, esMasivo = false } = req.body
+  const usuarioReal = usuario || 'Sistema'
+  const tipo = esMasivo ? '_MASIVA' : '_INDIVIDUAL'
   try {
     if (!direccion) return res.status(400).json({ ok: false, message: 'La dirección es obligatoria.' })
 
@@ -148,12 +156,15 @@ router.post('/smw/consultar', async (req, res) => {
     const { list: rfsList, mensaje } = await smwSoapService.consultarRfs(codigoDireccion)
 
     // Registrar Consulta en Log
+    const estadoRfs = rfsList.length > 0
+      ? `${rfsList.length} RFS encontrado(s)`
+      : 'Sin RFS — dirección limpia'
     await db.registrarLog(
       codigoDireccion,
-      usuario,
-      'SMW_CONSULTA',
-      'ÉXITO',
-      `Consulta técnica de dirección SMW: ${direccion}`
+      usuarioReal,
+      'SMW_CONSULTA' + tipo,
+      rfsList.length > 0 ? 'ÉXITO' : 'INFO',
+      `[SMW] Consulta dirección: "${direccion}" → ${estadoRfs}`
     )
 
     res.json({
@@ -169,10 +180,10 @@ router.post('/smw/consultar', async (req, res) => {
   } catch (err) {
     console.error('Error en /smw/consultar:', err.message)
     await db.registrarLog(
-      'DIREC_ERR', 
-      'Sistema', 
-      'SMW_CONSULTA', 
-      'ERROR', 
+      'DIREC_ERR',
+      usuarioReal,
+      'SMW_CONSULTA' + tipo,
+      'ERROR',
       `Fallo al consultar dirección [${direccion}]: ${err.message}`
     )
     res.status(500).json({ ok: false, message: err.message || 'Error al consultar SMW.' })
@@ -183,7 +194,8 @@ router.post('/smw/consultar', async (req, res) => {
  * Realiza la limpieza en SMW
  */
 router.post('/smw/limpiar', async (req, res) => {
-  const { codigoDireccion, rfsList, usuario, direccion } = req.body
+  const { codigoDireccion, rfsList, usuario, direccion, esMasivo = false } = req.body
+  const tipo = esMasivo ? '_MASIVA' : '_INDIVIDUAL'
   try {
     if (!codigoDireccion || !rfsList) {
       return res.status(400).json({ ok: false, message: 'Datos insuficientes para la limpieza.' })
@@ -195,7 +207,7 @@ router.post('/smw/limpiar', async (req, res) => {
     await db.registrarLog(
       codigoDireccion, 
       usuario || 'Sistema', 
-      'SMW_LIMPIEZA', 
+      'SMW_LIMPIEZA' + tipo, 
       'ÉXITO', 
       `Limpieza de recursos SMW exitosa. Dirección: ${direccion || 'N/A'}`
     )
@@ -208,11 +220,11 @@ router.post('/smw/limpiar', async (req, res) => {
     console.error('Error en /smw/limpiar:', err.message)
     // Registrar Error
     await db.registrarLog(
-      codigoDireccion || 'ERR', 
-      usuario || 'Sistema', 
-      'SMW_LIMPIEZA', 
-      'ERROR', 
-      `Fallo: ${err.message}`
+      codigoDireccion || 'ERR',
+      usuario || 'Sistema',
+      'SMW_LIMPIEZA' + tipo,
+      'ERROR',
+      `Fallo en limpieza SMW [${direccion || 'N/A'}]: ${err.message}`
     )
     res.status(500).json({ ok: false, message: err.message || 'Error al realizar limpieza SMW.' })
   }

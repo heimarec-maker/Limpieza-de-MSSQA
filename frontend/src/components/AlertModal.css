@@ -1,0 +1,149 @@
+/* ── AlertModal.css ── */
+
+.alert-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(6px);
+  animation: alert-overlay-in 0.2s ease;
+}
+
+@keyframes alert-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.alert-modal-box {
+  position: relative;
+  width: min(480px, 92vw);
+  border-radius: 20px;
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  animation: alert-box-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes alert-box-in {
+  from { opacity: 0; transform: scale(0.75) translateY(30px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Barra de color superior */
+.alert-modal-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 20px 20px 0 0;
+}
+
+/* Botón cerrar */
+.alert-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.alert-modal-close:hover {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+}
+
+/* Icono */
+.alert-modal-icon-wrap {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  animation: alert-icon-pulse 0.5s ease 0.1s both;
+}
+
+@keyframes alert-icon-pulse {
+  0%   { transform: scale(0); opacity: 0; }
+  70%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Título */
+.alert-modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin: 0 0 0.75rem;
+  text-align: center;
+}
+
+/* Mensaje */
+.alert-modal-message {
+  font-size: 0.97rem;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+  line-height: 1.6;
+  margin: 0 0 1.75rem;
+  max-width: 360px;
+}
+
+/* Botón aceptar */
+.alert-modal-btn {
+  border: none;
+  border-radius: 12px;
+  padding: 0.7rem 2.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 0.2s ease, transform 0.15s ease;
+  letter-spacing: 0.3px;
+}
+.alert-modal-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+.alert-modal-btn:active {
+  transform: translateY(0);
+}
+
+/* Barra de progreso autocerrar */
+.alert-modal-progress-wrap {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 0 0 20px 20px;
+  overflow: hidden;
+}
+
+.alert-modal-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  animation: alert-progress linear forwards;
+  transform-origin: left;
+}
+
+@keyframes alert-progress {
+  from { width: 100%; }
+  to   { width: 0%; }
+}

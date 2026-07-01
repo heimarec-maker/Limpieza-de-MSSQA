@@ -1,0 +1,163 @@
+/* ── ImportPreviewModal.css ── */
+
+.import-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  animation: fade-in 0.2s ease;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.import-modal-box {
+  width: min(600px, 95vw);
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--clr-card);
+  border: 1px solid var(--clr-border);
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.import-modal-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.02);
+}
+
+.import-modal-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.import-modal-close {
+  background: none;
+  border: none;
+  color: var(--clr-muted);
+  cursor: pointer;
+  padding: 0.2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.import-modal-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.import-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Scrollbar personalizado y elegante */
+.import-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+.import-modal-body::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+.import-modal-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+.import-modal-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.import-modal-desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  color: var(--clr-muted);
+}
+
+.import-modal-table-wrap {
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+}
+
+.import-modal-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.import-modal-table th {
+  background: var(--clr-card, #111418);
+  /* Efecto moderno Glass */
+  background: rgba(11, 15, 25, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 0.9rem 1rem;
+  text-align: left;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  position: sticky;
+  top: -1.5rem; /* Ajustarlo al padding superior del modal_body */
+  z-index: 10;
+  border-bottom: 1px solid var(--clr-border);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.import-modal-table td {
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+
+.import-modal-table tr:last-child td {
+  border-bottom: none;
+}
+
+.import-modal-table tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+
+.import-row-disabled td {
+  opacity: 0.4;
+}
+
+.import-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-top-color: var(--clr-accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.import-modal-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--clr-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  background: rgba(255,255,255,0.01);
+}

@@ -37,7 +37,7 @@ export async function consultarEquipo(serial, mac = '') {
 }
 
 // ─── OP 2+3+4: Ejecutar limpieza completa ────────────────────────────────────
-export async function ejecutarLimpieza(serial, mac, usuario = 'Sistema') {
+export async function ejecutarLimpieza(serial, mac, usuario = 'Sistema', esMasivo = false) {
   const timestamp = new Date().toISOString();
 
   const res = await fetch(
@@ -45,7 +45,7 @@ export async function ejecutarLimpieza(serial, mac, usuario = 'Sistema') {
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, mac, timestamp }),
+      body: JSON.stringify({ usuario, mac, timestamp, esMasivo }),
     }
   )
 
