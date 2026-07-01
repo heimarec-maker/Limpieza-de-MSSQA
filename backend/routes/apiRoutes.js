@@ -169,7 +169,61 @@ function agruparLogsLimpieza(logs = []) {
     })
   }
 
-  return actividades
+  return agruparLotesMasivos(actividades)
+}
+
+/**
+ * Segunda pasada: agrupa múltiples actividades _MASIVO del mismo usuario
+ * dentro de una ventana de 15 min en UN solo registro de lote.
+ */
+function agruparLotesMasivos(actividades) {
+  const BATCH_WINDOW_MS = 15 * 60 * 1000
+  const esMasivaEntry  = (a) => a.modulo?.includes('(Masiva)') && a.accion === 'Limpieza'
+
+  const masivas = actividades.filter(esMasivaEntry)
+  const otras   = actividades.filter(a => !esMasivaEntry(a))
+
+  const consumidas = new Set()
+  const lotes = []
+
+  for (const base of masivas) {
+    if (consumidas.has(base.id)) continue
+    const tsBase = new Date(base.timestamp).getTime()
+    const lote = [base]
+    consumidas.add(base.id)
+
+    for (const cand of masivas) {
+      if (consumidas.has(cand.id)) continue
+      if (cand.usuario !== base.usuario) continue
+      if (cand.modulo  !== base.modulo)  continue
+      const tsCand = new Date(cand.timestamp).getTime()
+      if (Math.abs(tsBase - tsCand) <= BATCH_WINDOW_MS) {
+        lote.push(cand)
+        consumidas.add(cand.id)
+      }
+    }
+
+    const exitosos = lote.filter(l => l.resultado === 'Éxito').length
+    const errores  = lote.filter(l => l.resultado === 'Error').length
+    const resultado = errores === 0 ? 'Éxito' : exitosos > 0 ? 'Advertencia' : 'Error'
+
+    lotes.push({
+      id: `batch-${base.id}`,
+      usuario: base.usuario,
+      accion: 'Limpieza',
+      modulo: base.modulo,
+      resultado,
+      detalles: `Lote masivo de ${lote.length} equipo(s) — ✅ ${exitosos} exitoso(s)  ❌ ${errores} error(es)`,
+      timestamp: base.timestamp,
+      esMasiva: true,
+      totalEquipos: lote.length,
+      items: lote,
+      _source: 'oracle',
+    })
+  }
+
+  return [...lotes, ...otras]
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
 }
 
 // NOTE: Removed the old hardcoded SYSTEM_USERS and USER_PASSWORDS to use LDAP + Mongo login

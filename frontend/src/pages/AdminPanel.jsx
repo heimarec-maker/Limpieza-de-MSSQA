@@ -5,7 +5,7 @@ import {
   Search, AlertTriangle, CheckCircle, XCircle,
   Info, Trash2, Download, Filter, Users,
   Clock, TrendingUp, BarChart3, RefreshCw,
-  ChevronRight, Database
+  ChevronRight, Database, Layers
 } from 'lucide-react'
 import { getActivityLogs, clearActivityLogs } from '../services/activityLog'
 import { getDBActivityLogs } from '../services/limpiezaDbService'
@@ -330,17 +330,74 @@ export default function AdminPanel() {
                     {dayLogs.map((log, index) => {
                       const actionCfg = ACTION_CONFIG[log.accion] || { Icon: Activity, className: '' }
                       const resultCfg = RESULT_CONFIG[log.resultado] || { Icon: Info, className: 'badge-info' }
-                      const isLast = index === dayLogs.length - 1
+                      const isLast    = index === dayLogs.length - 1
 
+                      // ── CARD LOTE MASIVO ──
+                      if (log.esMasiva && Array.isArray(log.items)) {
+                        const exitosos = log.items.filter(i => i.resultado === 'Éxito').length
+                        const errores  = log.items.filter(i => i.resultado === 'Error').length
+                        return (
+                          <div key={log.id} className="timeline-item">
+                            <div className="timeline-connector">
+                              <div className="timeline-icon-wrap" style={{ background: 'rgba(168,85,247,0.2)', border: '2px solid #a855f7' }}>
+                                <Layers size={16} color="#a855f7" />
+                              </div>
+                              {!isLast && <div className="timeline-line" />}
+                            </div>
+                            <div
+                              className="timeline-content glass-card timeline-content-clickable"
+                              onClick={() => setSelectedLog(log)}
+                              title={t('Ver lote masivo')}
+                              style={{ borderLeft: '2px solid #a855f744' }}
+                            >
+                              <div className="timeline-header">
+                                <div className="timeline-user">
+                                  <div className="mini-avatar" style={{ background: 'rgba(168,85,247,0.2)', color: '#a855f7', border: '1px solid #a855f744' }}>
+                                    {log.usuario?.charAt(0).toUpperCase()}
+                                  </div>
+                                  <div>
+                                    <span className="user-name">
+                                      {log.usuario}
+                                      {log._source === 'oracle' && (
+                                        <span style={{ marginLeft: '0.4rem', fontSize: '0.65rem', background: 'rgba(99,102,241,0.2)', color: '#818cf8', padding: '1px 6px', borderRadius: '999px', fontWeight: 600 }}>Oracle</span>
+                                      )}
+                                    </span>
+                                    <span className="action-text">
+                                      {' '}{t('realizó una')} <strong>limpieza masiva</strong> {t('en')} <strong>{log.modulo}</strong>
+                                      {' '}<span style={{ background: 'rgba(168,85,247,0.15)', color: '#a855f7', border: '1px solid #a855f744', padding: '1px 7px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700 }}>
+                                        ⚡ {log.totalEquipos} equipo(s)
+                                      </span>
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="timeline-meta">
+                                  <span className="result-badge badge-success" style={{ fontSize: '0.72rem' }}><CheckCircle size={12} /> {exitosos} OK</span>
+                                  {errores > 0 && <span className="result-badge badge-error" style={{ fontSize: '0.72rem' }}><XCircle size={12} /> {errores}</span>}
+                                  <span className="timeline-time">
+                                    {new Date(log.timestamp).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                  <ChevronRight size={14} style={{ color: '#a855f7', flexShrink: 0 }} />
+                                </div>
+                              </div>
+                              <div className="timeline-body">
+                                <p className="timeline-details" style={{ color: 'var(--clr-muted)' }}>
+                                  {log.detalles}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      }
+
+                      // ── CARD INDIVIDUAL (original) ──
                       return (
                         <div key={log.id} className="timeline-item">
                           <div className="timeline-connector">
                             <div className={`timeline-icon-wrap ${resultCfg.className}`}>
                               <actionCfg.Icon size={16} />
                             </div>
-                            {!isLast && <div className="timeline-line"></div>}
+                            {!isLast && <div className="timeline-line" />}
                           </div>
-                          
                           <div
                             className="timeline-content glass-card timeline-content-clickable"
                             onClick={() => setSelectedLog(log)}
@@ -369,7 +426,7 @@ export default function AdminPanel() {
                                   {log.resultado}
                                 </span>
                                 <span className="timeline-time">
-                                  {new Date(log.timestamp).toLocaleTimeString(i18n.language, {hour: '2-digit', minute:'2-digit'})}
+                                  {new Date(log.timestamp).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                                 <ChevronRight size={14} style={{ color: 'var(--clr-muted)', flexShrink: 0 }} />
                               </div>
