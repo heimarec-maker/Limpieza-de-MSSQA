@@ -1,7 +1,8 @@
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   X, CheckCircle, XCircle, AlertTriangle, Info,
-  Activity, Hash, Wifi, Cpu, Tag, Box
+  Activity, Hash, Wifi, Cpu, Tag, Box, ChevronRight
 } from 'lucide-react'
 import './LogDetailModal.css'
 
@@ -36,12 +37,14 @@ const RESULT_CFG = {
  */
 export default function LogDetailModal({ log, onClose }) {
   const { t, i18n } = useTranslation()
+  const [showStepsModal, setShowStepsModal] = useState(false)
 
   if (!log) return null
 
   const resultCfg = RESULT_CFG[log.resultado] || { Icon: Info, className: 'badge-info' }
 
   // Parsear "Serial: ZTE | MAC: AA | Tipo: ONT" → [{ key, value }, ...]
+  // O si es texto simple (consultas SMW), devolver null
   const fields = (log.detalles || '').split('|').map(seg => {
     const idx = seg.indexOf(':')
     if (idx === -1) return { key: seg.trim(), value: '' }
@@ -50,6 +53,14 @@ export default function LogDetailModal({ log, onClose }) {
       value: seg.slice(idx + 1).trim(),
     }
   }).filter(f => f.key)
+
+  // Detectar si es un detalle SMW (texto descriptivo sin estructura)
+  const esSMW = log.etapa?.startsWith('SMW_')
+  
+  const detailFields = esSMW 
+    ? [] 
+    : fields.filter(field => !/^Paso\s+\d+\.\d+/i.test(field.key))
+  const hasSteps = Array.isArray(log.pasos) && log.pasos.length > 0
 
   const fullDate = new Date(log.timestamp).toLocaleString(i18n.language, {
     day: '2-digit', month: 'long', year: 'numeric',
@@ -93,12 +104,27 @@ export default function LogDetailModal({ log, onClose }) {
 
         <hr className="log-detail-divider" />
 
-        {/* Campos del equipo */}
-        {fields.length > 0 && (
+        {/* Campos del equipo o detalle descriptivo SMW */}
+        {esSMW ? (
+          <>
+            <p className="log-detail-section-title">{t('Detalles')}</p>
+            <div style={{
+              padding: '0.8rem',
+              background: log.resultado === 'Error' ? 'rgba(255,0,0,0.05)' : 'rgba(16,185,129,0.05)',
+              border: `1px solid ${log.resultado === 'Error' ? 'rgba(255,0,0,0.2)' : 'rgba(16,185,129,0.2)'}`,
+              borderRadius: '8px',
+              color: log.resultado === 'Error' ? '#f87171' : '#6ee7b7',
+              fontSize: '0.85rem',
+              lineHeight: '1.5'
+            }}>
+              {log.detalles}
+            </div>
+          </>
+        ) : detailFields.length > 0 ? (
           <>
             <p className="log-detail-section-title">{t('Detalles del Equipo')}</p>
             <div className="log-detail-fields">
-              {fields.map(({ key, value }) => {
+              {detailFields.map(({ key, value }) => {
                 const FieldIcon = getFieldIcon(key)
                 return (
                   <div key={key} className="log-detail-field">
@@ -112,6 +138,18 @@ export default function LogDetailModal({ log, onClose }) {
               })}
             </div>
           </>
+        ) : null}
+
+        {/* Botón de detalles de pasos */}
+        {hasSteps && (
+          <button
+            className="btn btn-secondary"
+            style={{ width: '100%', marginTop: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+            onClick={() => setShowStepsModal(true)}
+          >
+            Ver detalles de pasos
+            <ChevronRight size={14} />
+          </button>
         )}
 
         {/* Botón cerrar */}
@@ -119,6 +157,67 @@ export default function LogDetailModal({ log, onClose }) {
           <button className="btn btn-secondary" onClick={onClose}>{t('Cerrar')}</button>
         </div>
       </div>
+
+      {/* ── Modal de detalles de pasos ── */}
+      {showStepsModal && (
+        <div className="confirm-overlay" onClick={() => setShowStepsModal(false)}>
+          <div
+            className="log-detail-dialog glass-card"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="log-detail-header">
+              <div className="log-detail-title">
+                <div className="mini-avatar" style={{ width: 40, height: 40, fontSize: '1rem' }}>
+                  {log.usuario?.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="log-detail-user">{log.usuario}</p>
+                  <p className="log-detail-module">{t('Detalles de pasos')}</p>
+                </div>
+              </div>
+              <button className="modal-close" onClick={() => setShowStepsModal(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <hr className="log-detail-divider" />
+
+            <div style={{ display: 'grid', gap: '0.8rem' }}>
+              {log.pasos.map((paso) => {
+                const stepResultCfg = RESULT_CFG[paso.resultado === 'ÉXITO' ? 'Éxito' : paso.resultado === 'INFO' ? 'Info' : 'Error'] || { Icon: Info, className: 'badge-info' }
+                return (
+                  <div
+                    key={paso.paso}
+                    style={{
+                      padding: '0.8rem',
+                      background: 'rgba(255,255,255,0.04)',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>
+                        Paso {paso.paso}
+                      </span>
+                      <span className={`result-badge ${stepResultCfg.className}`} style={{ fontSize: '0.75rem' }}>
+                        <stepResultCfg.Icon size={12} />
+                        {paso.resultado === 'ÉXITO' ? 'Éxito' : paso.resultado}
+                      </span>
+                    </div>
+                    <p style={{ margin: 0, color: 'var(--clr-text)', fontSize: '0.85rem', lineHeight: '1.4' }}>
+                      {paso.detalle}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setShowStepsModal(false)}>{t('Cerrar')}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
