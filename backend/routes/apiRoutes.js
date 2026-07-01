@@ -3,6 +3,8 @@ import * as equipmentService from '../services/equipmentService.js'
 import * as db from '../config/db.js'
 import { login as authLogin } from '../controllers/authController.js'
 import * as smwSoapService from '../services/smwSoapService.js'
+import User from '../models/modelsUser.js'
+import '../config/dbMongo.js' // asegurar conexión Mongo
 
 const router = express.Router()
 
@@ -111,8 +113,8 @@ router.get('/limpieza/logs', async (_req, res) => {
 
 router.get('/usuarios', async (_req, res) => {
   try {
-    // For now return an empty list or you can implement a Mongo-backed users list
-    res.json({ ok: true, data: [] })
+    const usuarios = await User.find({}).sort({ createdAt: -1 }).lean()
+    res.json({ ok: true, data: usuarios })
   } catch (err) {
     res.status(500).json({ ok: false, message: 'Error al obtener usuarios.' })
   }
@@ -135,7 +137,7 @@ router.post('/login', (req, res) => {
  * 2. Consulta RFS para obtener el listado y cantidad
  */
 router.post('/smw/consultar', async (req, res) => {
-  const { direccion } = req.body
+  const { direccion, usuario = 'Sistema' } = req.body
   try {
     if (!direccion) return res.status(400).json({ ok: false, message: 'La dirección es obligatoria.' })
 
@@ -147,10 +149,10 @@ router.post('/smw/consultar', async (req, res) => {
 
     // Registrar Consulta en Log
     await db.registrarLog(
-      codigoDireccion, 
-      'Sistema', // En este endpoint no pasamos usuario aún, se podría mejorar
-      'SMW_CONSULTA', 
-      'ÉXITO', 
+      codigoDireccion,
+      usuario,
+      'SMW_CONSULTA',
+      'ÉXITO',
       `Consulta técnica de dirección SMW: ${direccion}`
     )
 

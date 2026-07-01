@@ -30,7 +30,7 @@ export default function LimpiezaSmw() {
     setIsSearching(true)
     
     try {
-      const data = await consultarDireccionSmw(address)
+      const data = await consultarDireccionSmw(address, currentUser?.username || currentUser?.usuario || 'Sistema')
       setSelectedData(data)
       setShowModal(true)
     } catch (err) {

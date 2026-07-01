@@ -4,12 +4,12 @@ const API_BASE = 'http://localhost:3001/api';
  * Consulta la información técnica de una dirección en SMW.
  * Llama al backend que a su vez llama a los servicios SOAP.
  */
-export async function consultarDireccionSmw(direccion) {
+export async function consultarDireccionSmw(direccion, usuario = 'Sistema') {
   try {
     const res = await fetch(`${API_BASE}/smw/consultar`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ direccion })
+      body: JSON.stringify({ direccion, usuario })
     });
     
     const json = await res.json();
