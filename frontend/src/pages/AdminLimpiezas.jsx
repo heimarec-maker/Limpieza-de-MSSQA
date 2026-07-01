@@ -91,6 +91,11 @@ export default function AdminLimpiezas() {
     })
   }, [logs, filterUsuario, filterEtapa, filterResult, searchSerial])
 
+  // Filtrado para mostrar solo exitosos en la tabla principal
+  const exitosos = useMemo(() => {
+    return filtered.filter(l => l.resultado === 'ÉXITO')
+  }, [filtered])
+
 
 
   const handleExportExcel = () => {
@@ -212,7 +217,7 @@ export default function AdminLimpiezas() {
         {/* ── Contador ── */}
         <div className="admin-results-count">
           <Search size={16} />
-          {t('Mostrando')} <strong>{filtered.length}</strong> {t('de')} <strong>{logs.length}</strong> {t('registros')}
+          {t('Mostrando')} <strong>{exitosos.length}</strong> {t('exitosos de')} <strong>{filtered.length}</strong> {t('registros')}
         </div>
 
         {/* ── Tabla de registros ── */}
@@ -237,6 +242,12 @@ export default function AdminLimpiezas() {
               <h3>{t('Sin registros')}</h3>
               <p>{t('No hay operaciones que coincidan con los filtros aplicados.')}</p>
             </div>
+          ) : exitosos.length === 0 ? (
+            <div className="admin-empty">
+              <AlertTriangle size={48} />
+              <h3>{t('Sin registros exitosos')}</h3>
+              <p>{t('No hay operaciones exitosas en los filtros aplicados. Haz clic en una operación para ver más detalles.')}</p>
+            </div>
           ) : (
             <div className="admin-table-scroll">
               <table className="admin-table">
@@ -253,7 +264,7 @@ export default function AdminLimpiezas() {
                     </tr>
                 </thead>
                 <tbody>
-                  {filtered.map(log => {
+                  {exitosos.map(log => {
                     const rc   = getResultCfg(log.resultado)
                     const ec   = ETAPA_CONFIG[log.etapa]
                     const { date, time } = formatDate(log.ejecutado_at)
@@ -323,7 +334,7 @@ export default function AdminLimpiezas() {
 
       {/* ── Modal de detalle ── */}
       {selectedLog && (
-        <LogDetailModal log={selectedLog} onClose={() => setSelectedLog(null)} />
+        <LogDetailModal log={selectedLog} allLogs={filtered} onClose={() => setSelectedLog(null)} />
       )}
     </SubPage>
   )
@@ -343,11 +354,19 @@ function StatCard({ Icon, label, value, color }) {
 }
 
 /* ── Modal de detalle inline ── */
-function LogDetailModal({ log, onClose }) {
+function LogDetailModal({ log, allLogs, onClose }) {
   const { t } = useTranslation()
   const rc = getResultCfg(log.resultado)
   const ec = ETAPA_CONFIG[log.etapa]
   const d  = new Date(log.ejecutado_at)
+  
+  // Obtener todos los registros del mismo serial (relacionados)
+  const relatedLogs = useMemo(() => {
+    if (!allLogs) return []
+    return allLogs.filter(l => l.serial_nbr === log.serial_nbr).sort((a, b) => 
+      new Date(b.ejecutado_at) - new Date(a.ejecutado_at)
+    )
+  }, [allLogs, log.serial_nbr])
 
   return (
     <div className="confirm-overlay" onClick={onClose}>
@@ -390,6 +409,52 @@ function LogDetailModal({ log, onClose }) {
           <DetailRow label={t('Detalle')}   value={log.detalle || '—'} />
           <DetailRow label={t('Fecha')}     value={d.toLocaleString('es-CO')} />
         </div>
+
+        {/* Historial relacionado */}
+        {relatedLogs.length > 1 && (
+          <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+            <h4 style={{ margin: '0 0 0.8rem 0', color: '#fff', fontSize: '0.95rem', fontWeight: 600 }}>
+              {t('Historial de este equipo')} ({relatedLogs.length})
+            </h4>
+            <div style={{ display: 'grid', gap: '0.6rem', maxHeight: '240px', overflowY: 'auto' }}>
+              {relatedLogs.map((relLog) => {
+                const relRc = getResultCfg(relLog.resultado)
+                const relEc = ETAPA_CONFIG[relLog.etapa]
+                const relD = new Date(relLog.ejecutado_at)
+                const isCurrentLog = relLog.log_id === log.log_id
+                
+                return (
+                  <div
+                    key={relLog.log_id}
+                    style={{
+                      padding: '0.6rem 0.8rem',
+                      background: isCurrentLog ? 'rgba(0,194,255,0.1)' : 'rgba(255,255,255,0.04)',
+                      border: isCurrentLog ? '1px solid rgba(0,194,255,0.3)' : '1px solid rgba(255,255,255,0.08)',
+                      borderRadius: '8px',
+                      fontSize: '0.78rem',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flex: 1 }}>
+                      <span style={{ color: relRc.color, display: 'flex' }}>
+                        <relRc.Icon size={12} />
+                      </span>
+                      <span style={{ color: relEc?.color || '#6366f1', fontWeight: 500 }}>
+                        {relEc?.label || relLog.etapa}
+                      </span>
+                    </div>
+                    <span style={{ color: 'var(--clr-muted)', fontSize: '0.72rem', whiteSpace: 'nowrap' }}>
+                      {relD.toLocaleString('es-CO', { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         <button
           className="btn btn-primary"
