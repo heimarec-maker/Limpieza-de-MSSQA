@@ -11,6 +11,17 @@ const router = express.Router()
 const CLEANING_ETAPAS = new Set(['BORRADO', 'SERV_ITEM', 'SERV_REQ'])
 const CLEANING_WINDOW_MS = 15 * 60 * 1000
 
+function normalizeEtapa(etapa = '') {
+  return String(etapa).replace(/_(MASIVO|MASIVA|INDIVIDUAL)$/i, '')
+}
+
+function getTipoOperacion(etapa = '') {
+  const upper = String(etapa).toUpperCase()
+  if (upper.includes('MASIV')) return ' (Masiva)'
+  if (upper.includes('INDIVIDUAL')) return ' (Individual)'
+  return ''
+}
+
 function mapResultadoActividad(resultado) {
   if (resultado === 'ÉXITO') return 'Éxito'
   if (resultado === 'INFO') return 'Info'
@@ -81,14 +92,16 @@ function agruparLogsLimpieza(logs = []) {
   for (let i = 0; i < ordenados.length; i++) {
     const log = ordenados[i]
     const logId = getLogId(log)
+    const etapaBase = normalizeEtapa(log.etapa)
 
     if (consumidos.has(logId)) continue
 
-    const esInicioLimpieza = log.etapa === 'BORRADO' && log.resultado === 'ÉXITO'
+    const esInicioLimpieza = etapaBase === 'BORRADO' && log.resultado === 'ÉXITO'
 
     if (esInicioLimpieza) {
       const etapas = { BORRADO: log }
       const tsInicio = new Date(log.ejecutado_at).getTime()
+      const tipoOperacion = getTipoOperacion(log.etapa)
 
       // Buscar 1.3 (SERV_ITEM) y 1.4 (SERV_REQ) del mismo serial y usuario
       for (const candidato of ordenados) {
@@ -97,13 +110,14 @@ function agruparLogsLimpieza(logs = []) {
 
         const mismoSerial = candidato.serial_nbr === log.serial_nbr
         const mismoUsuario = candidato.usuario === log.usuario
-        const esServItem = candidato.etapa === 'SERV_ITEM'
-        const esServReq = candidato.etapa === 'SERV_REQ'
+        const etapaCandidatoBase = normalizeEtapa(candidato.etapa)
+        const esServItem = etapaCandidatoBase === 'SERV_ITEM'
+        const esServReq = etapaCandidatoBase === 'SERV_REQ'
         const tsCandidato = new Date(candidato.ejecutado_at).getTime()
         const dentroDeVentana = Math.abs(tsInicio - tsCandidato) <= CLEANING_WINDOW_MS
 
         if (mismoSerial && mismoUsuario && (esServItem || esServReq) && dentroDeVentana) {
-          etapas[candidato.etapa] = candidato
+          etapas[etapaCandidatoBase] = candidato
           consumidos.add(candidatoId)
         }
       }
@@ -113,7 +127,7 @@ function agruparLogsLimpieza(logs = []) {
         id: `log-${logId}`,
         usuario: log.usuario,
         accion: 'Limpieza',
-        modulo: 'Limpieza de Equipos',
+        modulo: `Limpieza de Equipos${tipoOperacion}`,
         detalles: buildActividadDetalle({ serial_nbr: log.serial_nbr, usuario: log.usuario, etapas }),
         pasos: buildActividadPasos({ etapas }),
         resultado: 'Éxito',
@@ -125,8 +139,8 @@ function agruparLogsLimpieza(logs = []) {
       continue
     }
 
-    const esPasoSecundarioDeLimpieza = CLEANING_ETAPAS.has(log.etapa) && ordenados.some(base => {
-      if (base.etapa !== 'BORRADO' || base.resultado !== 'ÉXITO') return false
+    const esPasoSecundarioDeLimpieza = CLEANING_ETAPAS.has(etapaBase) && ordenados.some(base => {
+      if (normalizeEtapa(base.etapa) !== 'BORRADO' || base.resultado !== 'ÉXITO') return false
       if (base.serial_nbr !== log.serial_nbr || base.usuario !== log.usuario) return false
       const baseTs = new Date(base.ejecutado_at).getTime()
       const logTs = new Date(log.ejecutado_at).getTime()
@@ -139,17 +153,18 @@ function agruparLogsLimpieza(logs = []) {
     }
 
     consumidos.add(logId)
-    const esConsulta = log.etapa === 'VALIDACION' || log.etapa === 'SMW_CONSULTA'
+    const tipoOperacion = getTipoOperacion(log.etapa)
+    const esConsulta = etapaBase === 'VALIDACION' || etapaBase.includes('CONSULTA')
     actividades.push({
       id: `log-${logId}`,
       usuario: log.usuario,
       accion: esConsulta ? 'Consulta' : 'Limpieza',
-      modulo: log.etapa?.startsWith('SMW_') ? 'Limpieza de SMW' : 'Limpieza de Equipos',
+      modulo: etapaBase.startsWith('SMW_') ? `Limpieza de SMW${tipoOperacion}` : `Limpieza de Equipos${tipoOperacion}`,
       detalles: `[${log.serial_nbr}] ${log.etapa} — ${log.detalle}`,
       resultado: mapResultadoActividad(log.resultado),
       timestamp: log.ejecutado_at,
       serial_nbr: log.serial_nbr,
-      etapa: log.etapa,
+      etapa: etapaBase,
       _source: 'oracle',
     })
   }
@@ -217,38 +232,7 @@ router.post('/limpieza/:serial', async (req, res) => {
 router.get('/actividad', async (_req, res) => {
   try {
     const logs = await db.getLogs()
-    const actividades = (logs || []).map(log => {
-      let resultado = log.resultado === 'ÉXITO' ? 'Éxito' : log.resultado === 'NO_ENCONTRADO' ? 'Advertencia' : 'Error'
-      
-      // Sanitizar etapa y saber si es masivo
-      const etapaStr = log.etapa || ''
-      const esMasivo = etapaStr.includes('MASIVO') || etapaStr.includes('MASIVA')
-      const esIndividual = etapaStr.includes('INDIVIDUAL')
-      
-      const tipoOperacion = esMasivo ? ' (Masiva)' : (esIndividual ? ' (Individual)' : '')
-
-      // Determinar módulo y acción según la etapa
-      let modulo = 'Limpieza de Equipos' + tipoOperacion
-      let accion = 'Limpieza'
-      
-      if (etapaStr.startsWith('SMW_')) {
-        modulo = 'Limpieza de SMW' + tipoOperacion
-      }
-      
-      if (etapaStr === 'VALIDACION' || etapaStr.includes('CONSULTA')) {
-        accion = 'Consulta'
-      }
-
-      return {
-        id: `log-${log.log_id || Math.random()}`,
-        usuario: log.usuario,
-        accion,
-        modulo,
-        detalles: `[${log.serial_nbr}] ${log.etapa} — ${log.detalle}`,
-        resultado,
-        timestamp: log.ejecutado_at,
-      }
-    })
+    const actividades = agruparLogsLimpieza(logs || [])
     res.json({ ok: true, data: actividades })
   } catch (err) {
     res.status(500).json({ ok: false, message: 'Error al obtener actividad.' })
