@@ -174,13 +174,11 @@ export default function AdminPanel() {
       title={t('Panel de Administrador')}
       description={t('Registro y seguimiento de todas las operaciones realizadas por los usuarios del sistema.')}
       action={
-        loadingDB
-          ? <span style={{ fontSize: '0.78rem', color: 'var(--clr-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sincronizando BD...
-            </span>
-          : <span style={{ fontSize: '0.78rem', color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Database size={13} /> {logs.filter(l => l._source === 'oracle').length} operaciones desde Oracle
-            </span>
+        loadingDB && (
+          <span style={{ fontSize: '0.78rem', color: 'var(--clr-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> Sincronizando BD...
+          </span>
+        )
       }
     >
       <div className="admin-container">

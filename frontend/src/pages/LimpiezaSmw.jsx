@@ -224,80 +224,84 @@ export default function LimpiezaSmw() {
         
         {/* ══ PANEL PRINCIPAL SMW ══ */}
         <div className="limpieza-card glass-card">
-          
-          <h2 style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.5rem', background: 'linear-gradient(135deg, #fff 0%, var(--clr-accent) 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            <Search size={22} style={{ color: 'var(--clr-accent)' }} />
-            {t('Ejecutar Limpieza SMW')}
-          </h2>
-
-          <div className="tabs">
-            <button className={`tab-btn ${tab === 'individual' ? 'active' : ''}`} onClick={() => setTab('individual')}>
-              {t('Individual')}
-            </button>
-            <button className={`tab-btn ${tab === 'masiva' ? 'active' : ''}`} onClick={() => setTab('masiva')}>
-              <Layers size={14} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-              {t('Masiva')}
-            </button>
+          <div className="card-header-row">
+            <h2 style={{ margin: 0 }}>
+              <MapPin size={17} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />
+              {t('Limpieza SMW')}
+            </h2>
+            <div className="tabs" style={{ margin: 0 }}>
+              <button className={`tab-btn ${tab === 'individual' ? 'active' : ''}`} onClick={() => setTab('individual')}>
+                {t('Individual')}
+              </button>
+              <button className={`tab-btn ${tab === 'masiva' ? 'active' : ''}`} onClick={() => setTab('masiva')}>
+                <Layers size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+                {t('Masiva')}
+              </button>
+            </div>
           </div>
 
           {tab === 'individual' && (
-            <div className="fade-in">
-              <form onSubmit={handleSearch}>
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="address">{t('Dirección Normalizada')}</label>
-                    <div style={{ position: 'relative' }}>
-                      <input
-                        id="address"
-                        type="text"
-                        placeholder={t('Ej: CL 43F SUR')}
-                        value={address}
-                        onChange={(e) => setAddress(e.target.value)}
-                        disabled={isSearching}
-                        style={{ width: '100%', paddingRight: address ? '2.5rem' : undefined }}
-                      />
-                      {address && !isSearching && (
-                        <button type="button" onClick={() => setAddress('')}
-                          style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
-                            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)',
-                            display: 'flex', alignItems: 'center', padding: '0.2rem' }}
-                          title="Limpiar">
-                          <XCircle size={16} />
-                        </button>
-                      )}
-                    </div>
+            <div className="unified-panel">
+              <div className="unified-panel-header">
+                <div className="unified-panel-icon-wrap">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="unified-panel-title">{t('Gestión Individual de Direcciones SMW')}</h3>
+                  <p className="unified-panel-desc">
+                    {t('Ingrese la dirección normalizada para consultar y liberar los puertos físicos y lógicos bloqueados.')}
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSearch} className="unified-panel-form">
+                <div className="form-group">
+                  <label className="form-label-sm" htmlFor="address">{t('Dirección Normalizada')}</label>
+                  <div className="premium-input-wrapper">
+                    <MapPin className="input-icon" size={17} />
+                    <input
+                      id="address"
+                      type="text"
+                      className="premium-input"
+                      placeholder={t('Ej: CL 43F SUR')}
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      disabled={isSearching}
+                      autoFocus
+                    />
+                    {address && !isSearching && (
+                      <button type="button" onClick={() => setAddress('')}
+                        className="clear-input-btn"
+                        title={t('Limpiar')}>
+                        <XCircle size={16} />
+                      </button>
+                    )}
                   </div>
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={isSearching}
-                  style={{ width: '100%', marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-                  {isSearching
-                    ? <><RefreshCw size={16} className="spin-animation" /> {t('Consultando...')}</>
-                    : <><Search size={16} /> {t('Consultar')}</>
-                  }
+
+                <button 
+                  type="submit" 
+                  className="btn btn-primary premium-submit-btn" 
+                  disabled={isSearching} 
+                  style={{ width: '100%' }}
+                >
+                  {isSearching ? (
+                    <>
+                      <RefreshCw size={15} className="spin-animation" />
+                      <span>{t('Consultando...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search size={15} />
+                      <span>{t('Consultar y Gestionar')}</span>
+                    </>
+                  )}
                 </button>
               </form>
 
-              {/* Help Section Individual */}
-              <div style={{ marginTop: '3rem', display: 'grid', gridTemplateColumns: 'minmax(200px, 1fr) minmax(200px, 1fr)', gap: '1.5rem' }}>
-                <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.8rem', color: 'var(--clr-accent)' }}>
-                    <PlusCircle size={18} />
-                    <span style={{ fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('Propósito')}</span>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--clr-muted)', lineHeight: '1.5' }}>
-                    Libera recursos lógicos bloqueados en direcciones que requieren re-aprovisionamiento.
-                  </p>
-                </div>
-                
-                <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.8rem', color: '#10b981' }}>
-                    <CheckCircle2 size={18} />
-                    <span style={{ fontWeight: '700', fontSize: '0.85rem', textTransform: 'uppercase' }}>{t('Garantía')}</span>
-                  </div>
-                  <p style={{ fontSize: '0.9rem', color: 'var(--clr-muted)', lineHeight: '1.5' }}>
-                    Asegura que la BD refleje la realidad física evitando errores de Cross-Reference.
-                  </p>
-                </div>
+              <div className="unified-panel-hint">
+                <Info size={12} />
+                <span>{t('Si la dirección tiene recursos activos en SMW, se habilitará la opción para iniciar la limpieza.')}</span>
               </div>
             </div>
           )}
@@ -307,11 +311,11 @@ export default function LimpiezaSmw() {
               
               <div className="masiva-toolbar">
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Upload size={14} /> Importar SQL / CSV
-                  <input type="file" accept=".csv,.txt,.xlsx,.sql" style={{ display: 'none' }} onChange={handleImportFile} disabled={batchRunning} />
+                  <Upload size={14} /> Importar TXT
+                  <input type="file" accept=".txt" style={{ display: 'none' }} onChange={handleImportFile} disabled={batchRunning} />
                 </label>
                 <span className="masiva-hint">
-                  Formato: <code>Dirección</code> (una por línea)
+                  {t('Formato: Archivo TXT (una dirección por línea)')}
                 </span>
               </div>
 
