@@ -38,20 +38,22 @@ function AppContent() {
       <div className="bg-orb orb-1"></div>
       <div className="bg-orb orb-2"></div>
       {!isLoginPage && <Navbar />}
-      <main className={!isLoginPage ? "main-content" : ""}>
+          <main className={!isLoginPage ? "main-content" : ""}>
         <Routes>
           <Route path="/" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/limpieza-equipos" element={<LimpiezaEquipos />} />
-          <Route path="/creacion-equipos" element={<CreacionEquipos />} />
-          <Route path="/limpieza-smw" element={<LimpiezaSmw />} />
-          <Route path="/limpieza-mss" element={<LimpiezaMss />} />
-          <Route path="/perfil" element={<Perfil />} />
-          <Route path="/manual" element={<ManualUsuario />} />
-          <Route path="/manual-tecnico" element={<ManualTecnico />} />
-          <Route path="/seguridad" element={<PoliticasSeguridad />} />
-          <Route path="/soporte" element={<SoporteTecnico />} />
-          
+
+          {/* Rutas protegidas: requieren sesión */}
+          <Route path="/home" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/limpieza-equipos" element={<ProtectedRoute><LimpiezaEquipos /></ProtectedRoute>} />
+          <Route path="/creacion-equipos" element={<ProtectedRoute><CreacionEquipos /></ProtectedRoute>} />
+          <Route path="/limpieza-smw" element={<ProtectedRoute><LimpiezaSmw /></ProtectedRoute>} />
+          <Route path="/limpieza-mss" element={<ProtectedRoute><LimpiezaMss /></ProtectedRoute>} />
+          <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+          <Route path="/manual" element={<ProtectedRoute><ManualUsuario /></ProtectedRoute>} />
+          <Route path="/manual-tecnico" element={<ProtectedRoute><ManualTecnico /></ProtectedRoute>} />
+          <Route path="/seguridad" element={<ProtectedRoute><PoliticasSeguridad /></ProtectedRoute>} />
+          <Route path="/soporte" element={<ProtectedRoute><SoporteTecnico /></ProtectedRoute>} />
+
           {/* Rutas de Administrador */}
           <Route path="/admin/actividad" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
           <Route path="/admin/usuarios" element={<ProtectedRoute requiredRole="admin"><AdminUsuarios /></ProtectedRoute>} />

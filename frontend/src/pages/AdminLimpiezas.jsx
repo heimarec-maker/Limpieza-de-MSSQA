@@ -485,6 +485,7 @@ function LogDetailModal({ log, allLogs, onClose }) {
   const { t } = useTranslation()
   const [showHistorial, setShowHistorial] = useState(false)
   const [showBatchEquipos, setShowBatchEquipos] = useState(false)
+  const [selectedHistorialLog, setSelectedHistorialLog] = useState(null)
   const rc = getResultCfg(log.resultado)
   const ec = ETAPA_CONFIG[normalizeEtapa(log.etapa)]
   const d  = new Date(log.ejecutado_at)
@@ -719,7 +720,6 @@ function LogDetailModal({ log, allLogs, onClose }) {
               <rc.Icon size={13} />{log.resultado}
             </span>
           } />
-          <DetailRow label={t('Detalle')}   value={log.detalle || '—'} />
           <DetailRow label={t('Fecha')}     value={d.toLocaleString('es-CO')} />
         </div>
 
@@ -781,13 +781,18 @@ function LogDetailModal({ log, allLogs, onClose }) {
               return (
                 <div
                   key={relLog.log_id}
+                  onClick={() => setSelectedHistorialLog(relLog)}
                   style={{
                     padding: '0.65rem 0.9rem',
                     background: isCurrentLog ? 'rgba(0,194,255,0.08)' : 'rgba(255,255,255,0.04)',
                     border: isCurrentLog ? '1px solid rgba(0,194,255,0.3)' : '1px solid rgba(255,255,255,0.08)',
                     borderRadius: '10px', fontSize: '0.8rem',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem'
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.6rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
                   }}
+                  onMouseEnter={(e) => !isCurrentLog && (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+                  onMouseLeave={(e) => !isCurrentLog && (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                     <span style={{ color: relRc.color, display: 'flex', flexShrink: 0 }}>
@@ -817,6 +822,83 @@ function LogDetailModal({ log, allLogs, onClose }) {
             className="btn btn-secondary"
             style={{ width: '100%', marginTop: '1.5rem', justifyContent: 'center' }}
             onClick={() => setShowHistorial(false)}
+          >
+            {t('Cerrar')}
+          </button>
+        </div>
+      </div>
+    )}
+
+    {/* ── Sub-modal detalle de registro del historial ── */}
+    {selectedHistorialLog && (
+      <div className="confirm-overlay" onClick={() => setSelectedHistorialLog(null)}>
+        <div
+          className="confirm-dialog glass-card"
+          onClick={e => e.stopPropagation()}
+          style={{ maxWidth: '520px', width: '90%', padding: '2rem', borderRadius: '20px' }}
+        >
+          {/* Cabecera */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,194,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Sparkles size={22} color="var(--clr-accent)" />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{t('Detalle de Limpieza')}</h3>
+                <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem' }}>#{selectedHistorialLog.log_id}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedHistorialLog(null)}
+              style={{ background: 'none', border: 'none', color: 'var(--clr-muted)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1 }}
+            >×</button>
+          </div>
+
+          {/* Datos */}
+          <div style={{ display: 'grid', gap: '1rem' }}>
+            <DetailRow label={t('Serial')}    value={<code style={{ color: 'var(--clr-accent)', fontFamily: 'monospace', fontSize: '1rem' }}>{selectedHistorialLog.serial_nbr}</code>} />
+            <DetailRow label={t('Técnico')}   value={selectedHistorialLog.usuario} />
+            <DetailRow label={t('Etapa')}     value={
+              <span style={{ padding: '0.18rem 0.65rem', borderRadius: '99px', fontSize: '0.8rem', background: `${ETAPA_CONFIG[normalizeEtapa(selectedHistorialLog.etapa)]?.color || '#6366f1'}22`, color: ETAPA_CONFIG[normalizeEtapa(selectedHistorialLog.etapa)]?.color || '#6366f1', border: `1px solid ${ETAPA_CONFIG[normalizeEtapa(selectedHistorialLog.etapa)]?.color || '#6366f1'}44` }}>
+                {ETAPA_CONFIG[normalizeEtapa(selectedHistorialLog.etapa)]?.label || normalizeEtapa(selectedHistorialLog.etapa)}
+              </span>
+            } />
+            <DetailRow label={t('Resultado')} value={
+              (() => {
+                const historialRc = getResultCfg(selectedHistorialLog.resultado)
+                return (
+                  <span className={`result-badge ${historialRc.className}`}>
+                    <historialRc.Icon size={13} />{selectedHistorialLog.resultado}
+                  </span>
+                )
+              })()
+            } />
+            <div style={{ padding: '0.7rem 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <span style={{ color: 'var(--clr-muted)', fontSize: '0.85rem', fontWeight: 500, display: 'block', marginBottom: '0.5rem' }}>{t('Detalle')}</span>
+              <div style={{
+                padding: '0.8rem',
+                background: selectedHistorialLog.resultado === 'ERROR' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.08)',
+                border: `1px solid ${selectedHistorialLog.resultado === 'ERROR' ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)'}`,
+                borderRadius: '8px',
+                color: selectedHistorialLog.resultado === 'ERROR' ? '#f87171' : '#6ee7b7',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+                wordWrap: 'break-word',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                whiteSpace: 'normal',
+                maxWidth: '100%'
+              }}>
+                {selectedHistorialLog.detalle || '—'}
+              </div>
+            </div>
+            <DetailRow label={t('Fecha')}     value={new Date(selectedHistorialLog.ejecutado_at).toLocaleString('es-CO')} />
+          </div>
+
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
+            onClick={() => setSelectedHistorialLog(null)}
           >
             {t('Cerrar')}
           </button>

@@ -81,6 +81,16 @@
   letter-spacing: 1px;
 }
 
+.log-detail-descriptive-box {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+  max-width: 100%;
+  overflow: visible;
+}
+
+
 .log-detail-fields {
   display: flex;
   flex-direction: column;
@@ -116,7 +126,10 @@
   font-weight: 500;
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
   text-align: right;
-  word-break: break-all;
+  word-break: break-word;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
 }
 
 /* ══════════════════════════════════════
@@ -130,7 +143,9 @@
   border-radius: 99px;
   font-size: 0.75rem;
   font-weight: 600;
-  white-space: nowrap;
+  white-space: normal;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .badge-success {

@@ -57,7 +57,10 @@ export default function LogDetailModal({ log, onClose }) {
   // Detectar si es un detalle SMW (texto descriptivo sin estructura)
   const esSMW = log.etapa?.startsWith('SMW_')
   
-  const detailFields = esSMW 
+  // Detectar si es un lote masivo (contiene "Lote masivo")
+  const esLoteMasivo = log.detalles?.includes('Lote masivo')
+  
+  const detailFields = esSMW || esLoteMasivo
     ? [] 
     : fields.filter(field => !/^Paso\s+\d+\.\d+/i.test(field.key))
   const hasSteps = Array.isArray(log.pasos) && log.pasos.length > 0
@@ -105,10 +108,10 @@ export default function LogDetailModal({ log, onClose }) {
         <hr className="log-detail-divider" />
 
         {/* Campos del equipo o detalle descriptivo SMW */}
-        {esSMW ? (
+        {esSMW || esLoteMasivo ? (
           <>
             <p className="log-detail-section-title">{t('Detalles')}</p>
-            <div style={{
+            <div className="log-detail-descriptive-box" style={{
               padding: '0.8rem',
               background: log.resultado === 'Error' ? 'rgba(255,0,0,0.05)' : 'rgba(16,185,129,0.05)',
               border: `1px solid ${log.resultado === 'Error' ? 'rgba(255,0,0,0.2)' : 'rgba(16,185,129,0.2)'}`,
