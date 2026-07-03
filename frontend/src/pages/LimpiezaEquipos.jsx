@@ -4,11 +4,13 @@ import {
   Monitor, Sparkles, Search, Download, History,
   CheckCircle, XCircle, AlertTriangle, RefreshCw,
   CalendarDays, Upload, Play, StopCircle, FileText,
-  ChevronDown, ChevronUp, Layers
+  ChevronDown, ChevronUp, Layers, Info
 } from 'lucide-react'
 import SubPage from '../components/SubPage'
 import AlertModal from '../components/AlertModal'
 import ImportPreviewModal from '../components/ImportPreviewModal'
+import EquipmentCleaningModal from '../components/EquipmentCleaningModal'
+import AlreadyFreeModal from '../components/AlreadyFreeModal'
 import { addActivityLog } from '../services/activityLog'
 import { exportOperationResults } from '../services/exportService'
 import { ejecutarLimpieza, consultarEquipo, getLogs } from '../services/limpiezaDbService'
@@ -89,6 +91,15 @@ export default function LimpiezaEquipos() {
   const [queryResult, setQueryResult] = useState(null)
   const [history, setHistory]       = useState([])
 
+  const [eqModalOpen, setEqModalOpen] = useState(false)
+  const [eqModalData, setEqModalData] = useState(null)
+  const [eqModalMode, setEqModalMode] = useState('info')
+
+  // ── Already Free Warning Modal ──
+  const [afmOpen, setAfmOpen] = useState(false)
+  const [afmSerial, setAfmSerial] = useState('')
+  const [afmEstado, setAfmEstado] = useState('')
+
   // ── Historial BD ──
   const [dbLogs, setDbLogs]         = useState([])
   const [logsLoading, setLogsLoading] = useState(false)
@@ -148,37 +159,65 @@ export default function LimpiezaEquipos() {
   // ── Limpieza individual ──
   const handleLimpiarIndividual = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    setResult(null)
-    setQueryResult(null)
-
     if (!serial) {
       setResult({ type: 'error', message: t('El Serial es obligatorio para la limpieza.') })
-      setLoading(false)
       return
     }
 
+    // ── Pre-check: consult the equipment status before cleaning ──
+    setLoading(true)
     try {
-      const res = await ejecutarLimpieza(serial, '', getUsername(), false)
-      setResult(res)
-      setHistory(prev => [{
-        input: serial,
-        status: mapResultType(res.type),
-        message: res.message,
-        timestamp: new Date().toISOString()
-      }, ...prev])
-      addActivityLog({
-        usuario: getUsername(),
-        accion: 'Limpieza',
-        modulo: 'Limpieza Equipos (Individual)',
-        detalles: `Serial: ${serial}`,
-        resultado: mapResultType(res.type),
-      })
-      cargarMisLogs()
+      const checkRes = await consultarEquipo(serial)
+      setLoading(false)
+
+      if (checkRes.type !== 'error' && checkRes.data) {
+        const estado = (checkRes.data.estado_cpe || checkRes.data.estado || '').toUpperCase()
+        const isAlreadyFree = ['LIBRE', 'DISPONIBLE', 'RETIRADO'].includes(estado)
+
+        if (isAlreadyFree) {
+          // Equipment is already clean — show dedicated warning modal
+          setAfmSerial(serial)
+          setAfmEstado(estado)
+          setAfmOpen(true)
+          setLoading(false)
+          return
+        }
+
+        // Equipment needs cleaning — show process modal (pass real data for accuracy)
+        setEqModalData(checkRes.data)
+      } else {
+        // Could not fetch full data — proceed with serial only
+        setEqModalData({ serial_nbr: serial })
+      }
     } catch {
-      setResult({ type: 'error', message: t('Error al conectar con el servidor. ¿Está corriendo npm run server?') })
+      setLoading(false)
+      // Proceed without pre-check on network error
+      setEqModalData({ serial_nbr: serial })
     }
-    setLoading(false)
+
+    setEqModalMode('process')
+    setEqModalOpen(true)
+  }
+
+  const handleCleanSuccess = (finalResult, cleanSerial) => {
+    cargarMisLogs()
+    setSerial('')
+    setQuerySerial('')
+    
+    setHistory(prev => [{
+      input: cleanSerial,
+      status: mapResultType(finalResult.type),
+      message: finalResult.message,
+      timestamp: new Date().toISOString()
+    }, ...prev])
+    
+    addActivityLog({
+      usuario: getUsername(),
+      accion: 'Limpieza',
+      modulo: 'Limpieza Equipos (Individual)',
+      detalles: `Serial: ${cleanSerial} — ${finalResult.message}`,
+      resultado: mapResultType(finalResult.type),
+    })
   }
 
   // ── Limpieza masiva con progreso ──
@@ -307,30 +346,50 @@ export default function LimpiezaEquipos() {
   }
 
 
-  const handleConsultar = async (e) => {
+  const handleUnified = async (e) => {
     e.preventDefault()
-    if (!querySerial) {
-      setQueryResult({ type: 'error', message: t('El Serial es obligatorio para la consulta.') })
+    const targetSerial = (serial || '').trim()
+    if (!targetSerial) {
+      setResult({ type: 'error', message: t('El Serial es obligatorio.') })
       return
     }
-    setQueryLoading(true)
-    setQueryResult(null)
+    setLoading(true)
     setResult(null)
+    setQueryResult(null)
 
     try {
-      const res = await consultarEquipo(querySerial)
-      setQueryResult(res)
-      addActivityLog({
-        usuario: getUsername(),
-        accion: 'Consulta',
-        modulo: 'Limpieza Equipos',
-        detalles: `Consulta serial: ${querySerial}`,
-        resultado: mapResultType(res.type),
-      })
+      const res = await consultarEquipo(targetSerial)
+      setLoading(false)
+
+      if (res.type === 'error') {
+        setQueryResult(res)
+        return
+      }
+
+      const eqData = res.data
+      const estado = (eqData?.estado_cpe || eqData?.estado || '').toUpperCase()
+      const isAlreadyFree = ['LIBRE', 'DISPONIBLE', 'RETIRADO'].includes(estado)
+
+      if (isAlreadyFree) {
+        setAfmSerial(targetSerial)
+        setAfmEstado(estado)
+        setAfmOpen(true)
+      } else {
+        setEqModalData(eqData)
+        setEqModalMode('info')
+        setEqModalOpen(true)
+        addActivityLog({
+          usuario: getUsername(),
+          accion: 'Consulta',
+          modulo: 'Limpieza Equipos',
+          detalles: `Serial: ${targetSerial}`,
+          resultado: mapResultType(res.type),
+        })
+      }
     } catch {
+      setLoading(false)
       setQueryResult({ type: 'error', message: t('Error al conectar con el servidor o al consultar el equipo.') })
     }
-    setQueryLoading(false)
   }
 
   // ── Stats del textarea masiva ──
@@ -348,48 +407,85 @@ export default function LimpiezaEquipos() {
 
         {/* ══ PANEL DE LIMPIEZA ══ */}
         <div className="limpieza-card glass-card">
-          <h2><Sparkles size={20} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />{t('Ejecutar Limpieza')}</h2>
-
-          <div className="tabs">
-            <button className={`tab-btn ${tab === 'individual' ? 'active' : ''}`} onClick={() => setTab('individual')}>
-              {t('Individual')}
-            </button>
-            <button className={`tab-btn ${tab === 'masiva' ? 'active' : ''}`} onClick={() => setTab('masiva')}>
-              <Layers size={14} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
-              {t('Masiva')}
-            </button>
+          <div className="card-header-row">
+            <h2 style={{ margin: 0 }}>
+              <Monitor size={17} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />
+              {t('Limpieza Individual')}
+            </h2>
+            <div className="tabs" style={{ margin: 0 }}>
+              <button className={`tab-btn ${tab === 'individual' ? 'active' : ''}`} onClick={() => setTab('individual')}>
+                {t('Individual')}
+              </button>
+              <button className={`tab-btn ${tab === 'masiva' ? 'active' : ''}`} onClick={() => setTab('masiva')}>
+                <Layers size={13} style={{ verticalAlign: 'middle', marginRight: '0.3rem' }} />
+                {t('Masiva')}
+              </button>
+            </div>
           </div>
 
           {/* ── Individual ── */}
           {tab === 'individual' && (
-            <form onSubmit={handleLimpiarIndividual}>
-              <div className="form-row">
+            <div className="unified-panel">
+              <div className="unified-panel-header">
+                <div className="unified-panel-icon-wrap">
+                  <Monitor size={20} />
+                </div>
+                <div>
+                  <h3 className="unified-panel-title">{t('Gestión Individual de Equipo')}</h3>
+                  <p className="unified-panel-desc">
+                    {t('Ingrese el serial para consultar el estado y gestionar la limpieza desde un solo lugar.')}
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleUnified} className="unified-panel-form">
                 <div className="form-group">
-                  <label>{t('Serial del Equipo')}</label>
-                  <div style={{ position: 'relative' }}>
+                  <label className="form-label-sm">{t('Serial del Equipo')}</label>
+                  <div className="premium-input-wrapper">
+                    <Search className="input-icon" size={17} />
                     <input
                       type="text"
-                      placeholder="Ej. ZTE123456"
+                      className="premium-input"
+                      placeholder={t('Ej: ZTEGC1A95003')}
                       value={serial}
                       onChange={e => setSerial(e.target.value)}
-                      style={{ width: '100%', paddingRight: serial ? '2.5rem' : undefined }}
+                      autoFocus
                     />
                     {serial && (
                       <button type="button" onClick={() => setSerial('')}
-                        style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
-                          background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)',
-                          display: 'flex', alignItems: 'center', padding: '0.2rem' }}
-                        title="Limpiar">
+                        className="clear-input-btn"
+                        title={t('Limpiar')}>
                         <XCircle size={16} />
                       </button>
                     )}
                   </div>
                 </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-primary premium-submit-btn"
+                  disabled={loading}
+                  style={{ width: '100%' }}
+                >
+                  {loading ? (
+                    <>
+                      <RefreshCw size={15} className="spin-animation" />
+                      <span>{t('Verificando...')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Search size={15} />
+                      <span>{t('Consultar y Gestionar')}</span>
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="unified-panel-hint">
+                <Info size={12} />
+                <span>{t('Si el equipo está asignado, podrás iniciar la limpieza directamente desde la ventana de resultado.')}</span>
               </div>
-              <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
-                {loading ? t('Procesando...') : t('Limpiar')}
-              </button>
-            </form>
+            </div>
           )}
 
           {/* ── Masiva ── */}
@@ -399,11 +495,11 @@ export default function LimpiezaEquipos() {
               {/* Barra de herramientas masiva */}
               <div className="masiva-toolbar">
                 <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Upload size={14} /> Importar SQL / CSV
-                  <input type="file" accept=".csv,.txt,.xlsx,.sql" style={{ display: 'none' }} onChange={handleImportFile} />
+                  <Upload size={14} /> Importar SQL
+                  <input type="file" accept=".sql" style={{ display: 'none' }} onChange={handleImportFile} />
                 </label>
                 <span className="masiva-hint">
-                  Formato: <code>Serial</code> (uno por línea)
+                  {t('Formato: Archivo SQL (uno por línea)')}
                 </span>
               </div>
 
@@ -576,46 +672,12 @@ export default function LimpiezaEquipos() {
             onClose={() => setResult(null)}
           />
         </div>
-
-        {/* ══ PANEL DE CONSULTA ══ */}
-        <div className="limpieza-card glass-card">
-          <h2><Search size={20} style={{ verticalAlign: 'middle', marginRight: '0.4rem' }} />{t('Consultar Equipos')}</h2>
-          <form onSubmit={handleConsultar}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('Serial del Equipo')}</label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="text"
-                    placeholder={t('Ej: ZTE12345')}
-                    value={querySerial}
-                    onChange={e => setQuerySerial(e.target.value)}
-                    style={{ width: '100%', paddingRight: querySerial ? '2.5rem' : undefined }}
-                  />
-                  {querySerial && (
-                    <button type="button" onClick={() => setQuerySerial('')}
-                      style={{ position: 'absolute', right: '0.75rem', top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--clr-muted)',
-                        display: 'flex', alignItems: 'center', padding: '0.2rem' }}
-                      title="Limpiar">
-                      <XCircle size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={queryLoading} style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.5rem' }}>
-              {queryLoading ? <><RefreshCw size={16} className="spin-animation" /> {t('Consultando...')}</> : <><Search size={16} /> {t('Consultar')}</>}
-            </button>
-          </form>
-
-          <AlertModal
-            open={!!queryResult}
-            type={queryResult?.type}
-            message={queryResult?.message}
-            onClose={() => setQueryResult(null)}
-          />
-        </div>
+        <AlertModal
+          open={!!queryResult}
+          type={queryResult?.type}
+          message={queryResult?.message}
+          onClose={() => setQueryResult(null)}
+        />
 
         {/* ══ EXPORTAR SESIÓN ══ */}
         {history.length > 0 && (
@@ -638,13 +700,12 @@ export default function LimpiezaEquipos() {
               {t('Mi Historial de Limpiezas')}
             </h2>
             <button
-              className="btn btn-primary"
-              style={{ padding: '0.4rem 0.9rem', fontSize: '0.82rem', gap: '0.4rem' }}
+              className="btn btn-accent btn-sm premium-refresh-btn"
               onClick={cargarMisLogs}
               disabled={logsLoading}
             >
-              <RefreshCw size={14} style={{ animation: logsLoading ? 'spin 0.8s linear infinite' : 'none' }} />
-              {t('Actualizar')}
+              <RefreshCw size={13} className={logsLoading ? 'spin-animation' : ''} />
+              <span>{t('Actualizar')}</span>
             </button>
           </div>
 
@@ -696,25 +757,34 @@ export default function LimpiezaEquipos() {
                       })
                     }
                   })
-                  return grouped.slice(0, 50).map(group => (
-                    <div key={group.id} className="op-history-row" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '0.4rem', padding: '0.8rem' }}>
-                      <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="op-history-details">
-                          <strong style={{ color: 'var(--clr-accent)', fontSize: '1.05rem' }}>{group.serial_nbr}</strong>
-                        </span>
-                        <span className={`op-history-badge result-box ${group.exitos === group.total ? 'success' : group.rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
-                          {group.exitos === group.total ? <CheckCircle size={12} /> : <group.rc.Icon size={12} />}
-                          {group.exitos === group.total ? 'LIMPIEZA EXITOSA' : group.resultado}
-                        </span>
+                  return grouped.slice(0, 50).map(group => {
+                    const isSuccess = group.exitos === group.total
+                    const borderCls = isSuccess ? 'success-gradient' : `${group.rc.cls}-gradient`
+                    return (
+                      <div key={group.id} className={`op-history-row ${borderCls}`}>
+                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className="op-history-details">
+                            <strong style={{ color: 'var(--clr-accent)', fontSize: '1.05rem' }}>{group.serial_nbr}</strong>
+                          </span>
+                          <span className={`op-history-badge result-box ${isSuccess ? 'success' : group.rc.cls}`} style={{ margin: 0, padding: '0.18rem 0.55rem', animation: 'none' }}>
+                            {isSuccess ? <CheckCircle size={12} /> : <group.rc.Icon size={12} />}
+                            {isSuccess ? t('LIMPIEZA EXITOSA') : group.resultado}
+                          </span>
+                        </div>
+                        <div className="op-history-steps">
+                          {group.detalles.map((d, i) => (
+                            <div key={i} className="op-history-step-item">
+                              <span>•</span>
+                              <span>{d}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="op-history-time" style={{ alignSelf: 'flex-end', fontSize: '0.75rem', marginTop: '0.2rem' }}>
+                          {group.fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })} {group.fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
+                        </div>
                       </div>
-                      <div style={{ fontSize: '0.85rem', color: 'var(--clr-muted)', paddingLeft: '0.5rem', borderLeft: '2px solid var(--clr-border)' }}>
-                        {group.detalles.map((d, i) => <div key={i}>• {d}</div>)}
-                      </div>
-                      <div className="op-history-time" style={{ alignSelf: 'flex-end', fontSize: '0.75rem', marginTop: '0.2rem' }}>
-                        {group.fecha.toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })} {group.fecha.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 })()}
               </div>
             </div>
@@ -728,6 +798,21 @@ export default function LimpiezaEquipos() {
         fileSerials={previewSerials}
         onClose={() => setPreviewModalOpen(false)}
         onConfirm={handleConfirmImport}
+      />
+
+      <EquipmentCleaningModal
+        isOpen={eqModalOpen}
+        equipment={eqModalData}
+        initialMode={eqModalMode}
+        onClose={() => setEqModalOpen(false)}
+        onCleanSuccess={handleCleanSuccess}
+      />
+
+      <AlreadyFreeModal
+        isOpen={afmOpen}
+        serial={afmSerial}
+        estado={afmEstado}
+        onClose={() => setAfmOpen(false)}
       />
     </SubPage>
   )
