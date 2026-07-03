@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import SubPage from '../components/SubPage';
 import {
@@ -11,6 +12,22 @@ import './AdminPanel.css';
 import { exportExcel } from '../services/exportService';
 
 const API_BASE = 'http://localhost:3001';
+
+/** Normaliza un documento Mongo al shape que usa el componente */
+function normalizeUser(u) {
+  return {
+    id:         String(u._id || u.id || ''),
+    _raw:       u,
+    name:       u.nombre || u.name || u.usuario || '—',
+    usuario:    u.usuario || '',
+    email:      u.correo  || u.email || '—',
+    role:       u.rol     || u.role  || 'Operador',
+    status:     u.estado  || u.status || 'Activo',
+    department: u.etbDependencia || u.department || '—',
+    lastLogin:  u.updatedAt ? new Date(u.updatedAt).toLocaleString('es-CO') : '—',
+    avatar:     u.nombre ? u.nombre.charAt(0).toUpperCase() : (u.usuario || '?').charAt(0).toUpperCase(),
+  };
+}
 
 const EMPTY_FORM = { name: '', email: '', role: 'Operador', status: 'Activo', department: '' };
 
@@ -39,7 +56,7 @@ export default function AdminUsuarios() {
       const res = await fetch(`${API_BASE}/api/usuarios`);
       const json = await res.json();
       if (json.ok) {
-        setUsersList(json.data);
+        setUsersList(json.data.map(normalizeUser));
       } else {
         setError(t('Error al cargar los usuarios.'));
       }
@@ -53,8 +70,13 @@ export default function AdminUsuarios() {
 
   const filteredUsers = usersList.filter(u => {
     if (filterRole !== 'Todos' && u.role !== filterRole) return false;
-    if (searchText && !u.name.toLowerCase().includes(searchText.toLowerCase()) &&
-        !u.email.toLowerCase().includes(searchText.toLowerCase())) return false;
+    if (searchText) {
+      const q = searchText.toLowerCase();
+      const matchName    = u.name?.toLowerCase().includes(q);
+      const matchUsuario = u.usuario?.toLowerCase().includes(q);
+      const matchEmail   = u.email?.toLowerCase().includes(q);
+      if (!matchName && !matchUsuario && !matchEmail) return false;
+    }
     return true;
   });
 
@@ -66,14 +88,13 @@ export default function AdminUsuarios() {
     setShowModal(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const errors = {};
     if (!formData.name.trim()) {
       errors.name = t('El nombre es obligatorio.');
     } else if (formData.name.trim().length < 3) {
       errors.name = t('El nombre debe tener al menos 3 caracteres.');
     }
-    
     if (!formData.email.trim()) {
       errors.email = t('El correo electrónico es obligatorio.');
     } else {
@@ -82,26 +103,34 @@ export default function AdminUsuarios() {
         errors.email = t('El formato del correo electrónico no es válido.');
       } else {
         const isDuplicate = usersList.some(u => u.email.toLowerCase() === formData.email.toLowerCase() && (!editingUser || u.id !== editingUser.id));
-        if (isDuplicate) {
-          errors.email = t('Ya existe un usuario con este correo electrónico.');
-        }
+        if (isDuplicate) errors.email = t('Ya existe un usuario con este correo electrónico.');
       }
     }
-    
-    if (!formData.department.trim()) {
-      errors.department = t('El departamento es obligatorio.');
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-    
+    if (!formData.department.trim()) errors.department = t('El departamento es obligatorio.');
+    if (Object.keys(errors).length > 0) { setFormErrors(errors); return; }
     setFormErrors({});
 
     if (editingUser) {
-      setUsersList(prev => prev.map(u => u.id === editingUser.id ? { ...u, ...formData } : u));
+      // Persistir cambios en la BD
+      try {
+        const res = await fetch(`${API_BASE}/api/usuarios/${editingUser.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData),
+        });
+        const json = await res.json();
+        if (json.ok) {
+          await fetchUsers(); // recargar desde la BD para que refleje los datos reales
+        } else {
+          alert(json.message || t('Error al actualizar el usuario.'));
+          return;
+        }
+      } catch (err) {
+        alert(t('No se pudo conectar con el servidor.'));
+        return;
+      }
     } else {
+      // Crear nuevo usuario — solo en estado local por ahora (requiere endpoint POST)
       setUsersList(prev => [{
         ...formData,
         id: Date.now(),
@@ -112,9 +141,20 @@ export default function AdminUsuarios() {
     setShowModal(false);
   };
 
-  const handleDelete = () => {
-    setUsersList(prev => prev.filter(u => u.id !== deleteTarget.id));
-    setDeleteTarget(null);
+  const handleDelete = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/usuarios/${deleteTarget.id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.ok) {
+        setUsersList(prev => prev.filter(u => u.id !== deleteTarget.id));
+      } else {
+        alert(json.message || t('Error al eliminar el usuario.'));
+      }
+    } catch (err) {
+      alert(t('No se pudo conectar con el servidor.'));
+    } finally {
+      setDeleteTarget(null);
+    }
   };
 
   const handleToggle = async (userId) => {
@@ -143,9 +183,9 @@ export default function AdminUsuarios() {
   };
 
   const total    = usersList.length;
-  const activos  = usersList.filter(u => u.status === 'Activo').length;
-  const admins   = usersList.filter(u => u.role === 'Administrador').length;
-  const inactivos= usersList.filter(u => u.status === 'Inactivo').length;
+  const activos  = usersList.filter(u => (u.status || '').toLowerCase() === 'activo').length;
+  const admins   = usersList.filter(u => (u.role  || '').toLowerCase() === 'administrador').length;
+  const inactivos= usersList.filter(u => (u.status || '').toLowerCase() === 'inactivo').length;
 
   const avatarBg = (role) =>
     role === 'Administrador'
@@ -240,7 +280,10 @@ export default function AdminUsuarios() {
                     <td className="col-user">
                       <div className="user-cell">
                         <div className="mini-avatar" style={{ background: avatarBg(user.role) }}>{user.avatar}</div>
-                        <span style={{ fontWeight: 500, color: '#fff' }}>{user.name}</span>
+                        <div>
+                          <span style={{ fontWeight: 500, color: '#fff', display: 'block' }}>{user.name}</span>
+                          {user.usuario && <span style={{ fontSize:'0.75rem', color:'var(--clr-muted)', fontFamily:'monospace' }}>@{user.usuario}</span>}
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -255,14 +298,19 @@ export default function AdminUsuarios() {
                       </span>
                     </td>
                     <td>
-                      <span className={`result-badge ${user.role === 'Administrador' ? 'badge-warning' : user.role === 'Operador' ? 'badge-info' : 'badge-success'}`}>
-                        {user.role === 'Administrador' ? <Shield size={12} /> : <Users size={12} />}
+                      <span className={`result-badge ${
+                        user.role?.toLowerCase() === 'administrador' ? 'badge-warning' :
+                        user.role?.toLowerCase() === 'operador'      ? 'badge-info'    : 'badge-success'
+                      }`}>
+                        {user.role?.toLowerCase() === 'administrador' ? <Shield size={12} /> : <Users size={12} />}
                         {t(user.role)}
                       </span>
                     </td>
                     <td>
-                      <span className={`result-badge ${user.status === 'Activo' ? 'badge-success' : 'badge-error'}`}>
-                        {user.status === 'Activo' ? <CheckCircle size={12} /> : <XCircle size={12} />}
+                      <span className={`result-badge ${
+                        user.status?.toLowerCase() === 'activo' ? 'badge-success' : 'badge-error'
+                      }`}>
+                        {user.status?.toLowerCase() === 'activo' ? <CheckCircle size={12} /> : <XCircle size={12} />}
                         {t(user.status)}
                       </span>
                     </td>
@@ -303,7 +351,7 @@ export default function AdminUsuarios() {
       </div>
 
       {/* ── Modal Crear / Editar ── */}
-      {showModal && (
+      {showModal && createPortal(
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-dialog glass-card" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
@@ -367,11 +415,12 @@ export default function AdminUsuarios() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Confirmar eliminación ── */}
-      {deleteTarget && (
+      {deleteTarget && createPortal(
         <div className="confirm-overlay" onClick={() => setDeleteTarget(null)}>
           <div className="confirm-dialog glass-card" onClick={e => e.stopPropagation()}>
             <AlertTriangle size={40} className="confirm-icon" />
@@ -384,7 +433,8 @@ export default function AdminUsuarios() {
               <button className="btn btn-accent" onClick={() => setDeleteTarget(null)}>{t('Cancelar')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </SubPage>
   );

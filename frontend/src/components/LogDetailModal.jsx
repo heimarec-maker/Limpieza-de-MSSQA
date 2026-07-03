@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   X, CheckCircle, XCircle, AlertTriangle, Info,
@@ -70,7 +71,7 @@ export default function LogDetailModal({ log, onClose }) {
     hour: '2-digit', minute: '2-digit', second: '2-digit'
   })
 
-  return (
+  return createPortal(
     <div className="confirm-overlay" onClick={onClose}>
       <div
         className="log-detail-dialog glass-card"
@@ -221,6 +222,7 @@ export default function LogDetailModal({ log, onClose }) {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   )
 }

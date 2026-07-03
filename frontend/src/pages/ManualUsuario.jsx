@@ -189,10 +189,10 @@ export default function ManualUsuario() {
             <h1>Manual de Usuario — Portal ETB</h1>
             <div className="manual-hero-meta">
               <span>
-                <Calendar size={14} /> Versión 1.1 (Junio 2026)
+                <Calendar size={14} /> Versión 1.2 (Julio 2026)
               </span>
               <span>
-                <Code size={14} /> React + Vite + Express + Oracle
+                <Code size={14} /> React + Vite + Express + MongoDB + Oracle
               </span>
               <span className="manual-link-secondary">
                 <Terminal size={14} /> <a href="/manual-tecnico">Ver Manual Técnico</a>
@@ -205,25 +205,19 @@ export default function ManualUsuario() {
               <span className="section-number">1</span> Introducción
             </h2>
             <p>
-              El <strong>Portal de Gestión ETB</strong> es una plataforma web
-              centralizada para la optimización y control de procesos técnicos
-              de la empresa ETB. Permite a los técnicos y administradores
-              gestionar el inventario de equipos, realizar procesos de limpieza,
-              crear nuevos equipos y auditar todas las operaciones.
+              El <strong>Portal de Gestión ETB</strong> centraliza las operaciones de
+              limpieza, creación y auditoría de equipos. La plataforma está pensada
+              para técnicos y administradores que necesitan consultar estados,
+              ejecutar procesos y revisar trazabilidad de cada acción.
             </p>
 
             <h3>Propósito</h3>
             <ul>
-              <li>
-                Gestionar y limpiar el inventario de equipos (ONT, STB, TV BOX,
-                etc.)
-              </li>
-              <li>Registrar y dar de alta nuevos equipos en el sistema</li>
-              <li>Consultar el estado de equipos por número de serial</li>
-              <li>
-                Mantener un registro de auditoría de todas las operaciones
-              </li>
-              <li>Administrar usuarios, roles y permisos</li>
+              <li>Gestionar y limpiar equipos registrados en Oracle (ONT, STB, TV BOX, etc.)</li>
+              <li>Registrar nuevos equipos en el inventario del sistema</li>
+              <li>Consultar el estado actual por serial o MAC</li>
+              <li>Mantener un registro histórico de operaciones y resultados</li>
+              <li>Administrar usuarios, roles y permisos según el tipo de cuenta</li>
             </ul>
 
             <div className="manual-table-wrap">
@@ -238,24 +232,21 @@ export default function ManualUsuario() {
                 <tbody>
                   <tr>
                     <td>
-                      <strong>Usuario (Técnico)</strong>
+                      <strong>Usuario</strong>
                     </td>
                     <td>
-                      Operador que realiza las tareas de limpieza y creación de
-                      equipos
+                      Ejecuta procesos operativos y consulta información relevante del inventario
                     </td>
-                    <td>Módulos operativos (Limpieza, Creación, SMW, MSS)</td>
+                    <td>Módulos operativos (Limpieza, Creación, SMW y MSS)</td>
                   </tr>
                   <tr>
                     <td>
                       <strong>Administrador</strong>
                     </td>
                     <td>
-                      Supervisa, audita y gestiona los procesos y usuarios
+                      Revisa auditoría, gestiona usuarios y supervisa el estado del sistema
                     </td>
-                    <td>
-                      Panel de Administración (Actividad, Historial, Usuarios)
-                    </td>
+                    <td>Panel de Administración (Actividad, Historial y Usuarios)</td>
                   </tr>
                 </tbody>
               </table>
@@ -268,12 +259,10 @@ export default function ManualUsuario() {
             </h2>
             <h3>Entorno</h3>
             <ul>
-              <li>Node.js (v18 o superior)</li>
-              <li>
-                Conexión a la red ETB (VPN activa si es remoto) para acceso a
-                Oracle
-              </li>
-              <li>Navegador Google Chrome (Recomendado)</li>
+              <li>Node.js 18 o superior</li>
+              <li>Conexión a la red ETB o VPN activa para acceder a Oracle y LDAP</li>
+              <li>Navegador moderno como Google Chrome o Edge</li>
+              <li>Credenciales válidas del directorio corporativo o cuenta de prueba habilitada</li>
             </ul>
           </section>
 
@@ -284,34 +273,25 @@ export default function ManualUsuario() {
             <div className="manual-alert alert-important">
               <AlertCircle size={18} />
               <div>
-                <strong>Importante:</strong> El sistema depende de dos procesos
-                activos simultáneamente. Si el backend no está corriendo, no
-                podrá realizar limpiezas ni consultas a la base de datos Oracle.
+                <strong>Importante:</strong> El backend debe estar activo para que las consultas,
+                limpiezas y auditorías funcionen correctamente.
               </div>
             </div>
 
-            <p>
-              La forma recomendada de iniciar el sistema es mediante el comando
-              unificado:
-            </p>
+            <p>La forma recomendada de iniciar la plataforma es:</p>
             <div className="manual-code-block">npm start</div>
-            <p>
-              Este comando utiliza <code>concurrently</code> para arrancar:
-            </p>
+            <p>Este comando levanta simultáneamente:</p>
             <ul>
               <li>
-                <strong>Frontend:</strong> Vite en{" "}
-                <code>http://localhost:5173</code>
+                <strong>Frontend:</strong> Vite en <code>http://localhost:5173</code>
               </li>
               <li>
-                <strong>Backend (API/Oracle):</strong> Express en{" "}
-                <code>http://localhost:3001</code>
+                <strong>Backend:</strong> Express en <code>http://localhost:3001</code>
               </li>
             </ul>
             <p>
-              Si prefiere iniciarlos por separado en terminales diferentes, debe
-              ejecutar <code>npm run dev</code> para el frontend y{" "}
-              <code>npm run server</code> para el servidor de base de datos.
+              Si desea arrancarlos por separado, use <code>npm run dev</code> para el frontend y
+              <code> npm run server</code> para la API.
             </p>
           </section>
 
@@ -320,48 +300,25 @@ export default function ManualUsuario() {
               <span className="section-number">4</span> Inicio de Sesión
             </h2>
             <p>
-              Al acceder al portal, se presenta la pantalla de inicio de sesión
-              que requiere credenciales válidas.
+              Al ingresar al portal, el sistema valida las credenciales contra LDAP y,
+              al confirmar el acceso, sincroniza los datos del usuario con la base de datos
+              interna para mantener perfil, rol y estado.
             </p>
 
-            <h3>Credenciales de Prueba</h3>
-            <div className="manual-table-wrap">
-              <table className="manual-table">
-                <thead>
-                  <tr>
-                    <th>Usuario</th>
-                    <th>Email</th>
-                    <th>Contraseña</th>
-                    <th>Rol</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>
-                      <code>admin</code>
-                    </td>
-                    <td>
-                      <code>admin@etb.com.co</code>
-                    </td>
-                    <td>
-                      <code>Admin123*</code>
-                    </td>
-                    <td>Administrador</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <code>heimar</code>
-                    </td>
-                    <td>
-                      <code>heimar@etb.com.co</code>
-                    </td>
-                    <td>
-                      <code>Heimar123*</code>
-                    </td>
-                    <td>Usuario (Técnico)</td>
-                  </tr>
-                </tbody>
-              </table>
+            <h3>Flujo de acceso</h3>
+            <ol>
+              <li>Ingrese usuario y contraseña en la pantalla de login.</li>
+              <li>El backend valida la identidad contra LDAP.</li>
+              <li>Si el usuario está activo y su rol es válido, entra al portal.</li>
+              <li>La sesión se mantiene para permitir el acceso a módulos protegidos.</li>
+            </ol>
+
+            <div className="manual-alert alert-tip">
+              <Info size={18} />
+              <div>
+                <strong>Usuarios inactivos:</strong> si una cuenta está marcada como inactiva,
+                el sistema denegará el ingreso hasta que sea reactivada por administración.
+              </div>
             </div>
           </section>
 
@@ -370,19 +327,23 @@ export default function ManualUsuario() {
               <span className="section-number">5</span> Dashboard
             </h2>
             <p>
-              Dependiendo del rol del usuario, el Dashboard mostrará diferentes
-              opciones de acceso rápido.
+              Después de iniciar sesión, el usuario verá un tablero con los módulos disponibles
+              según su rol.
             </p>
             <ul>
               <li>
-                <strong>Técnicos:</strong> Acceso a módulos de Limpieza de
-                Equipos, Creación de Equipos, Limpieza SMW y MSS.
+                <strong>Usuarios:</strong> Limpieza de Equipos, Creación de Equipos, Limpieza SMW y
+                acceso a la documentación.
               </li>
               <li>
-                <strong>Administradores:</strong> Acceso al Registro de
-                Actividad, Historial de Limpiezas y Gestión de Usuarios.
+                <strong>Administradores:</strong> Registro de Actividad, Historial de Limpiezas,
+                Gestión de Usuarios y visibilidad completa del sistema.
               </li>
             </ul>
+            <p>
+              El módulo de Limpieza MSS aparece como funcionalidad en desarrollo y puede estar
+              temporalmente sin operaciones activas.
+            </p>
           </section>
 
           <section id="navbar" className="manual-section">
@@ -390,10 +351,8 @@ export default function ManualUsuario() {
               <span className="section-number">6</span> Barra de Navegación
             </h2>
             <p>
-              Proporciona acceso rápido a todos los módulos y opciones del
-              sistema. En dispositivos móviles se adapta a un menú hamburguesa
-              lateral. Contiene el menú de perfil de usuario en la esquina
-              derecha.
+              La barra de navegación ofrece acceso rápido a los módulos principales, al perfil del usuario
+              y a la documentación del sistema. En pantallas pequeñas se adapta a un menú tipo hamburguesa.
             </p>
           </section>
 
@@ -403,47 +362,30 @@ export default function ManualUsuario() {
               <span className="manual-badge badge-done">Completado</span>
             </h2>
             <p>
-              Permite ejecutar procesos de limpieza sobre equipos registrados,
-              desvinculándolos de servicios y marcándolos como LIBRE.
+              Este módulo permite ejecutar la limpieza lógica y de dependencias de un equipo,
+              dejando evidencias del proceso para auditoría.
             </p>
 
-            <h3>Proceso de Limpieza (4 Operaciones)</h3>
+            <h3>Proceso recomendado</h3>
             <ol>
-              <li>
-                <strong>Validación:</strong> Verifica que el equipo existe con
-                el serial y MAC proporcionados.
-              </li>
-              <li>
-                <strong>Borrado de equipo:</strong> Cambia el estado del equipo
-                a LIBRE y RETIRADO.
-              </li>
-              <li>
-                <strong>Limpieza Serv. Item:</strong> Marca el serial con `*` en
-                la tabla de ítems de servicio.
-              </li>
-              <li>
-                <strong>Limpieza Serv. Req:</strong> Marca el serial con `*` en
-                la tabla de solicitudes.
-              </li>
+              <li><strong>Validación:</strong> el sistema confirma que el serial y la MAC ingresados son válidos.</li>
+              <li><strong>Borrado:</strong> se ejecuta el proceso de limpieza en Oracle.</li>
+              <li><strong>Serv. Item:</strong> se limpia la referencia del serial en los ítems de servicio.</li>
+              <li><strong>Serv. Req:</strong> se limpia la referencia en solicitudes asociadas.</li>
             </ol>
 
             <div className="manual-alert alert-tip">
               <Info size={18} />
               <div>
-                <strong>Detección de Estado:</strong> El sistema ahora detecta
-                automáticamente si un equipo ya está limpio. Si al validar el
-                serial el estado es <code>LIBRE</code>, <code>DISPONIBLE</code>{" "}
-                o <code>RETIRADO</code>, se notificará que no es necesario
-                procesarlo nuevamente.
+                <strong>Detección automática:</strong> si el equipo ya se encuentra en estado libre,
+                retirado o disponible, el sistema advierte que no es necesario procesarlo nuevamente.
               </div>
             </div>
 
             <div className="manual-alert alert-warning">
               <AlertTriangle size={18} />
               <div>
-                <strong>MAC Obligatoria:</strong> Por seguridad y trazabilidad,
-                el campo MAC es ahora obligatorio para ejecutar cualquier
-                proceso de limpieza.
+                <strong>MAC obligatoria:</strong> el campo MAC debe completarse para ejecutar cualquier limpieza.
               </div>
             </div>
           </section>
@@ -454,16 +396,13 @@ export default function ManualUsuario() {
               <span className="manual-badge badge-done">Completado</span>
             </h2>
             <p>
-              Registro y alta de nuevos equipos en el inventario del sistema
-              especificando tipo, serial, MAC y estado inicial.
+              Desde este módulo se registra un nuevo equipo con sus datos básicos y su estado inicial.
             </p>
 
-            <h3>Sistema de Plantilla</h3>
+            <h3>Uso recomendado</h3>
             <p>
-              La opción "Mantener configuración de plantilla" permite una
-              digitalización masiva más rápida al borrar solo el Serial y la MAC
-              después de guardar, manteniendo el Tipo y Estado seleccionados
-              para el siguiente ingreso.
+              Ingrese tipo, serial, MAC y estado inicial; luego guarde el registro. La opción de
+              mantener la plantilla facilita el ingreso repetido de equipos con la misma configuración.
             </p>
           </section>
 
@@ -472,9 +411,8 @@ export default function ManualUsuario() {
               <span className="section-number">9</span> Perfil de Usuario
             </h2>
             <p>
-              La página de perfil permite visualizar y editar su información
-              personal, cambiar la contraseña, configurar el idioma de la
-              interfaz y alternar entre modo oscuro y claro.
+              El perfil permite revisar la información personal asociada a la cuenta, cambiar el idioma,
+              alternar entre tema claro y oscuro, y acceder a la documentación del portal.
             </p>
           </section>
 
@@ -483,25 +421,18 @@ export default function ManualUsuario() {
               <span className="section-number">10</span> Panel de Administración
             </h2>
             <p>
-              Exclusivo para usuarios con rol de Administrador. Incluye tres
-              submódulos principales:
+              Exclusivo para administradores. Permite revisar operaciones, filtros, estadísticas y manejo de cuentas.
             </p>
             <ul>
               <li>
-                <strong>Registro de Actividad:</strong> Auditoría en tiempo real
-                de todas las operaciones realizadas por los usuarios, incluyendo
-                origen de datos (Oracle).
+                <strong>Registro de Actividad:</strong> muestra operaciones ejecutadas por los usuarios
+                y su resultado, integrando información de Oracle y registros locales.
               </li>
               <li>
-                <strong>Historial de Limpiezas:</strong> Vista detallada de las
-                limpiezas ejecutadas en la BD, con estadísticas y filtros por
-                serial.
+                <strong>Historial de Limpiezas:</strong> ofrece una vista consolidada de las limpiezas realizadas.
               </li>
               <li>
-                <strong>Gestión de Usuarios:</strong> Administración de cuentas.
-                Nota: Las cuentas marcadas como <strong>Inactivas</strong>{" "}
-                perderán acceso inmediato al sistema y no podrán iniciar sesión
-                hasta ser reactivadas.
+                <strong>Gestión de Usuarios:</strong> permite administrar estados, roles y accesos de las cuentas.
               </li>
             </ul>
           </section>
@@ -511,30 +442,22 @@ export default function ManualUsuario() {
               <span className="section-number">11</span> Preguntas Frecuentes
             </h2>
 
-            <h4>
-              ¿Qué hago si aparece el error "¿Está corriendo npm run server?"
-            </h4>
+            <h4>¿Qué hago si aparece el mensaje de que el backend no está respondiendo?</h4>
             <p>
-              Este error indica que la API backend no responde. Asegúrese de
-              haber ejecutado <code>npm start</code> o{" "}
-              <code>npm run server</code> en la carpeta raíz del proyecto y que
-              no haya errores de conexión en la consola.
+              Verifique que haya ejecutado <code>npm start</code> o <code>npm run server</code>
+              desde la raíz del proyecto y que no existan errores en la consola del servidor.
             </p>
 
             <h4>Error de conexión ORA-XXXXX</h4>
             <p>
-              Si visualiza un error que comienza con "ORA-", significa que hay
-              un problema de comunicación con Oracle. Verifique sus credenciales
-              en el archivo <code>.env</code> y asegúrese de estar conectado a
-              la red interna o VPN de ETB.
+              Este tipo de error indica un problema de comunicación con Oracle. Revise las variables
+              de conexión en <code>.env</code> y confirme que su red o VPN permita el acceso.
             </p>
 
             <h4>¿Cómo sé si un equipo ya fue limpiado?</h4>
             <p>
-              En el módulo de Limpieza de Equipos, el sistema verificará el
-              "Estado CPE" en el esquema <code>ASAP</code>. Si el estado ya es
-              LIBRE o similar, recibirá una notificación indicando que el equipo
-              ya se encuentra procesado.
+              El sistema valida el estado actual del equipo antes de procesarlo. Si ya está libre,
+              retirado o disponible, mostrará una advertencia indicando que no es necesario volver a limpiarlo.
             </p>
           </section>
         </div>

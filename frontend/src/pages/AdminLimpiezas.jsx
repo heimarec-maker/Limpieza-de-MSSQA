@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   Sparkles, Search, Filter, Download, RefreshCw,
-  CheckCircle, XCircle, AlertTriangle, Info,
+  CheckCircle, XCircle, AlertTriangle, Info, X,
   User, Clock, Monitor, ChevronRight, Database,
   CalendarDays, Activity
 } from 'lucide-react'
 import SubPage from '../components/SubPage'
-import { getLogs } from '../services/limpiezaDbService'
+import { getLogs, getUsuarios } from '../services/limpiezaDbService'
 import { exportExcel } from '../services/exportService'
 import './AdminPanel.css'
 
@@ -64,6 +65,7 @@ export default function AdminLimpiezas() {
   const [searchSerial,  setSearchSerial]  = useState('')
   const [refreshing,    setRefreshing]    = useState(false)
   const [selectedLog,   setSelectedLog]   = useState(null)
+  const [dbUsers,       setDbUsers]       = useState([])
 
   const cargarLogs = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -80,14 +82,24 @@ export default function AdminLimpiezas() {
     }
   }
 
-  useEffect(() => {
+  const cargarDataInicial = async () => {
     cargarLogs()
+    try {
+      const dbUsuarios = await getUsuarios()
+      setDbUsers(dbUsuarios || [])
+    } catch (e) {}
+  }
+
+  useEffect(() => {
+    cargarDataInicial()
     const interval = setInterval(() => cargarLogs(true), 30000)
     return () => clearInterval(interval)
   }, [])
 
   // Listas únicas para filtros
-  const usuarios = useMemo(() => [...new Set(logs.map(l => l.usuario))].sort(), [logs])
+  const usuarios = useMemo(() => {
+    return [...new Set(dbUsers.map(u => u.usuario).filter(Boolean))].sort()
+  }, [dbUsers])
   const etapas   = useMemo(() => [...new Set(logs.map(l => l.etapa))].sort(), [logs])
 
   // Estadísticas rápidas
@@ -505,85 +517,104 @@ function LogDetailModal({ log, allLogs, onClose }) {
     const pct      = log.batchItems.length > 0 ? Math.round((exitosos / log.batchItems.length) * 100) : 0
     const { date, time } = formatDate(log.ejecutado_at)
 
-    return (
+    return createPortal(
       <>
       <div className="confirm-overlay" onClick={onClose}>
         <div
           className="confirm-dialog premium-modal-card"
           onClick={e => e.stopPropagation()}
-          style={{ maxWidth: '500px', width: '90%', padding: '0', borderRadius: '24px' }}
+          style={{ maxWidth: '520px', width: '92%', padding: '0', borderRadius: '24px' }}
         >
-          {/* Cabecera con gradiente morado */}
-          <div style={{
-            padding: '1.8rem 2rem 1.4rem',
-            background: 'linear-gradient(145deg, rgba(124, 58, 237, 0.45) 0%, rgba(76, 29, 149, 0.25) 60%, rgba(15, 23, 42, 0) 100%)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-            position: 'relative'
-          }}>
-            {/* glow orb */}
-            <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '190px', height: '190px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.2) 0%, transparent 70%)', pointerEvents: 'none' }} />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.9rem' }}>
-                <div style={{ 
-                  width: '50px', height: '50px', borderRadius: '16px', 
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  boxShadow: '0 8px 24px rgba(168,85,247,0.4)', flexShrink: 0 
-                }}>
-                  <Sparkles size={22} color="#fff" />
+          {/* ── Cabecera Aurora ── */}
+          <div className="premium-header-aurora">
+            {/* Moving dynamic aurora blobs */}
+            <div className="aurora-blob blob-1" />
+            <div className="aurora-blob blob-2" />
+            <div className="aurora-blob blob-3" />
+
+            {/* Header Content */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 3 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <div className="premium-icon-badge">
+                  <Sparkles size={24} color="#fff" />
                 </div>
                 <div>
-                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.18rem', fontWeight: 800, letterSpacing: '-0.3px' }}>⚡ Limpieza Masiva</h3>
-                  <p style={{ margin: '0.2rem 0 0', color: 'rgba(255,255,255,0.45)', fontSize: '0.8rem', fontWeight: 500 }}>
-                    {log.usuario} &nbsp;·&nbsp; {date} &nbsp;·&nbsp; <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>{time}</span>
+                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.4px', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontSize: '1.1rem' }}>⚡</span> Limpieza Masiva
+                  </h3>
+                  <p style={{ margin: '0.3rem 0 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.82rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    {log.usuario}
+                    <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'inline-block' }} />
+                    {date}
+                    <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'inline-block' }} />
+                    <span style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'rgba(255,255,255,0.3)' }}>{time}</span>
                   </p>
                 </div>
               </div>
               <button onClick={onClose} className="premium-close-btn">
-                <span style={{ fontSize: '1.25rem', lineHeight: 1, padding: '0 0.2rem' }}>×</span>
+                <X size={16} />
               </button>
             </div>
 
             {/* Stats row */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginTop: '1.25rem', position: 'relative', zIndex: 2 }}>
-              {[
-                { label: 'Total', value: log.batchCount, color: '#fff' },
-                { label: 'Exitosos', value: exitosos, color: '#10b981' },
-                { label: 'Errores', value: errores, color: errores > 0 ? '#ef4444' : 'rgba(255,255,255,0.2)' },
-              ].map(s => (
-                <div key={s.label} className="header-stat-box">
-                  <span style={{ display: 'block', fontSize: '1.65rem', fontWeight: 900, color: s.color, lineHeight: 1, letterSpacing: '-1px' }}>{s.value}</span>
-                  <span style={{ display: 'block', fontSize: '0.64rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: 'rgba(255,255,255,0.35)', marginTop: '0.25rem' }}>{s.label}</span>
-                </div>
-              ))}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.65rem', marginTop: '1.5rem', position: 'relative', zIndex: 3 }}>
+              <div className="header-stat-box">
+                <span className="stat-number" style={{ color: '#fff' }}>{log.batchCount}</span>
+                <span className="stat-subtitle">{t('Total')}</span>
+              </div>
+              <div className="header-stat-box success">
+                <span className="stat-number" style={{ color: '#10b981' }}>{exitosos}</span>
+                <span className="stat-subtitle">{t('Exitosos')}</span>
+              </div>
+              <div className="header-stat-box error">
+                <span className="stat-number" style={{ color: errores > 0 ? '#ef4444' : 'rgba(255,255,255,0.2)' }}>{errores}</span>
+                <span className="stat-subtitle">{t('Errores')}</span>
+              </div>
             </div>
 
-            {/* Progress bar */}
-            <div style={{ marginTop: '1.1rem', position: 'relative', zIndex: 2 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', color: 'rgba(255,255,255,0.4)', marginBottom: '0.45rem', textTransform: 'uppercase', letterSpacing: '0.6px', fontWeight: 700 }}>
+            {/* Premium progress bar */}
+            <div className="premium-progress-wrap">
+              <div className="premium-progress-label">
                 <span>Tasa de éxito</span>
-                <span style={{ color: pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444', fontWeight: 800 }}>{pct}%</span>
+                <span className="premium-progress-pct" style={{ color: pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444' }}>{pct}%</span>
               </div>
-              <div style={{ height: '6px', background: 'rgba(255,255,255,0.06)', borderRadius: '99px', overflow: 'hidden' }}>
-                <div style={{ height: '100%', borderRadius: '99px', width: `${pct}%`, background: pct >= 80 ? 'linear-gradient(90deg,#059669,#10b981)' : pct >= 50 ? 'linear-gradient(90deg,#d97706,#f59e0b)' : 'linear-gradient(90deg,#dc2626,#ef4444)', transition: 'width 0.9s cubic-bezier(0.2, 0.8, 0.2, 1)' }} />
+              <div className="premium-progress-track">
+                <div
+                  className="premium-progress-fill"
+                  style={{
+                    width: `${pct}%`,
+                    background: pct >= 80
+                      ? 'linear-gradient(90deg, #059669, #10b981, #34d399)'
+                      : pct >= 50
+                        ? 'linear-gradient(90deg, #d97706, #f59e0b, #fbbf24)'
+                        : 'linear-gradient(90deg, #dc2626, #ef4444, #f87171)',
+                    boxShadow: pct >= 80
+                      ? '0 0 16px rgba(16,185,129,0.45)'
+                      : pct >= 50
+                        ? '0 0 16px rgba(245,158,11,0.45)'
+                        : '0 0 16px rgba(239,68,68,0.45)',
+                  }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Cuerpo - Botones */}
-          <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {/* ── Cuerpo ── */}
+          <div className="premium-body">
             <button 
-              className="premium-btn-close-large"
-              style={{
-                background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(124, 58, 237, 0.1) 100%)',
-                borderColor: 'rgba(168, 85, 247, 0.3)',
-                color: '#c084fc'
-              }}
+              className="premium-action-btn"
               onClick={() => setShowBatchEquipos(true)}
             >
-              <Monitor size={16} />
-              {t('Equipos')} ({log.batchItems.length})
-              <ChevronRight size={14} style={{ marginLeft: 'auto' }} />
+              <div className="btn-icon-wrap">
+                <Monitor size={18} color="#c4b5fd" />
+              </div>
+              <div style={{ textAlign: 'left' }}>
+                <span style={{ display: 'block', fontSize: '0.94rem', color: '#fff' }}>{t('Ver Equipos')}</span>
+                <span style={{ display: 'block', fontSize: '0.74rem', color: 'rgba(196,181,253,0.5)', marginTop: '0.05rem', fontWeight: 500 }}>
+                  {log.batchItems.length} {t('dispositivos en total')}
+                </span>
+              </div>
+              <ChevronRight size={16} className="btn-chevron" />
             </button>
 
             <button className="premium-btn-close-large" onClick={onClose}>
@@ -594,79 +625,90 @@ function LogDetailModal({ log, allLogs, onClose }) {
       </div>
 
       {/* ── Sub-modal de Equipos del Lote ── */}
-      {showBatchEquipos && (
+      {showBatchEquipos && createPortal(
         <div className="confirm-overlay" onClick={() => setShowBatchEquipos(false)}>
           <div
             className="confirm-dialog premium-modal-card"
             onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '520px', width: '90%', padding: '2rem', borderRadius: '24px' }}
+            style={{ maxWidth: '520px', width: '92%', padding: '0', borderRadius: '24px' }}
           >
             {/* Cabecera sub-modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(168,85,247,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Monitor size={22} color="#a855f7" style={{ margin: 'auto' }} />
+            <div style={{ padding: '1.8rem 2rem', borderBottom: '1px solid rgba(168,85,247,0.1)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', boxSizing: 'border-box' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                <div className="premium-icon-badge" style={{ width: '44px', height: '44px', borderRadius: '12px', minWidth: '44px' }}>
+                  <Monitor size={20} color="#fff" />
                 </div>
-                <div>
-                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.05rem', fontWeight: 800 }}>📦 {t('Equipos del lote')}</h3>
-                  <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem' }}>{log.usuario} &nbsp;·&nbsp; {log.batchCount} {t('dispositivos')}</p>
+                <div style={{ textAlign: 'left' }}>
+                  <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem', fontWeight: 800 }}>📦 {t('Equipos del lote')}</h3>
+                  <p style={{ margin: '0.15rem 0 0', color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem', fontWeight: 500 }}>
+                    {log.usuario} · {log.batchCount} {t('dispositivos')}
+                  </p>
                 </div>
               </div>
-              <button
-                onClick={() => setShowBatchEquipos(false)}
+              <button 
+                onClick={() => setShowBatchEquipos(false)} 
                 className="premium-close-btn"
-              >×</button>
+                style={{ flexShrink: 0, marginLeft: '1rem' }}
+              >
+                <X size={16} />
+              </button>
             </div>
 
             {/* Listado de equipos */}
-            <div className="premium-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem', maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
-              {log.batchItems.map((item, idx) => {
-                const irc = getResultCfg(item.resultado)
-                const ok  = item.resultado === 'ÉXITO'
-                return (
-                  <div 
-                    key={item.log_id || idx} 
-                    className={`premium-eq-row ${ok ? 'ok' : 'err'}`}
-                    style={{ animation: `fadeIn 0.2s ease both` }}
-                  >
-                    <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)', minWidth: '20px', textAlign: 'right', fontWeight: 700 }}>
-                      {String(idx + 1).padStart(2, '0')}
-                    </span>
-                    <div style={{ 
-                      width: '26px', height: '26px', borderRadius: '50%', 
-                      background: ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      flexShrink: 0
-                    }}>
-                      <irc.Icon size={12} style={{ color: ok ? '#10b981' : '#ef4444' }} />
+            <div style={{ padding: '1.25rem 1.8rem' }}>
+              <div className="premium-scroll" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                {log.batchItems.map((item, idx) => {
+                  const irc = getResultCfg(item.resultado)
+                  const ok  = item.resultado === 'ÉXITO'
+                  return (
+                    <div 
+                       key={item.log_id || idx} 
+                       className={`premium-eq-row ${ok ? 'ok' : 'err'}`}
+                       style={{ animation: `fadeSlideUp 0.3s ease both`, animationDelay: `${idx * 25}ms` }}
+                    >
+                      <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.22)', minWidth: '20px', textAlign: 'right', fontWeight: 700 }}>
+                        {String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <div style={{ 
+                        width: '26px', height: '26px', borderRadius: '50%', 
+                        background: ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0
+                      }}>
+                        <irc.Icon size={12} style={{ color: ok ? '#10b981' : '#ef4444' }} />
+                      </div>
+                      <code style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', flex: 1, letterSpacing: '0.3px' }}>
+                        {item.serial_nbr || '—'}
+                      </code>
+                      <span className={`result-badge ${irc.className}`} style={{ fontSize: '0.68rem', padding: '0.15rem 0.55rem', borderRadius: '6px' }}>
+                        {item.resultado}
+                      </span>
                     </div>
-                    <code style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '0.86rem', fontWeight: 700, color: '#f8fafc', flex: 1, letterSpacing: '0.3px' }}>
-                      {item.serial_nbr || '—'}
-                    </code>
-                    <span className={`result-badge ${irc.className}`} style={{ fontSize: '0.68rem', padding: '0.15rem 0.55rem', borderRadius: '6px' }}>
-                      {item.resultado}
-                    </span>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
 
-            <button
-              className="premium-btn-close-large"
-              style={{ marginTop: '1.5rem' }}
-              onClick={() => setShowBatchEquipos(false)}
-            >
-              {t('Volver')}
-            </button>
+            {/* Footer */}
+            <div style={{ padding: '0 1.8rem 1.8rem' }}>
+              <button
+                className="premium-btn-close-large"
+                onClick={() => setShowBatchEquipos(false)}
+              >
+                {t('Volver')}
+              </button>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
-      </>
+      </>,
+      document.body
     )
   }
 
   // ── MODO INDIVIDUAL ─────────────────────────────────────────────────────────
-  return (
+  return createPortal(
     <>
     <div className="confirm-overlay" onClick={onClose}>
       <div
@@ -675,20 +717,14 @@ function LogDetailModal({ log, allLogs, onClose }) {
         style={{ maxWidth: '520px', width: '90%', padding: '2rem', borderRadius: '20px' }}
       >
         {/* Cabecera */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,194,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Sparkles size={22} color="var(--clr-accent)" />
-            </div>
-            <div>
-              <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{t('Detalle de Limpieza')}</h3>
-              <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem' }}>#{log.log_id}</p>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,194,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Sparkles size={22} color="var(--clr-accent)" />
           </div>
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', color: 'var(--clr-muted)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1 }}
-          >×</button>
+          <div>
+            <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{t('Detalle de Limpieza')}</h3>
+            <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem' }}>#{log.log_id}</p>
+          </div>
         </div>
 
         {/* Datos */}
@@ -747,7 +783,7 @@ function LogDetailModal({ log, allLogs, onClose }) {
     </div>
 
     {/* ── Sub-modal historial ── */}
-    {showHistorial && (
+    {showHistorial && createPortal(
       <div className="confirm-overlay" onClick={() => setShowHistorial(false)}>
         <div
           className="confirm-dialog glass-card"
@@ -755,21 +791,25 @@ function LogDetailModal({ log, allLogs, onClose }) {
           style={{ maxWidth: '520px', width: '90%', padding: '2rem', borderRadius: '20px' }}
         >
           {/* Cabecera sub-modal */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,194,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Clock size={22} color="var(--clr-accent)" />
               </div>
-              <div>
-                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.05rem' }}>{t('Historial del equipo')}</h3>
-                <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem', fontFamily: 'monospace' }}>{log.serial_nbr}</p>
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{t('Historial del equipo')}</h3>
+                <p style={{ margin: '0.15rem 0 0', color: 'var(--clr-muted)', fontSize: '0.8rem', fontFamily: 'monospace' }}>{log.serial_nbr}</p>
               </div>
             </div>
             <button
               onClick={() => setShowHistorial(false)}
-              style={{ background: 'none', border: 'none', color: 'var(--clr-muted)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1 }}
-            >×</button>
+              className="premium-close-btn"
+              style={{ width: '32px', height: '32px', flexShrink: 0, marginLeft: '1rem' }}
+            >
+              <X size={16} />
+            </button>
           </div>
+
 
           {/* Lista de registros */}
           <div style={{ display: 'grid', gap: '0.6rem', maxHeight: '280px', overflowY: 'auto' }}>
@@ -826,11 +866,12 @@ function LogDetailModal({ log, allLogs, onClose }) {
             {t('Cerrar')}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
 
     {/* ── Sub-modal detalle de registro del historial ── */}
-    {selectedHistorialLog && (
+    {selectedHistorialLog && createPortal(
       <div className="confirm-overlay" onClick={() => setSelectedHistorialLog(null)}>
         <div
           className="confirm-dialog glass-card"
@@ -838,20 +879,23 @@ function LogDetailModal({ log, allLogs, onClose }) {
           style={{ maxWidth: '520px', width: '90%', padding: '2rem', borderRadius: '20px' }}
         >
           {/* Cabecera */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', width: '100%', marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
               <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: 'rgba(0,194,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Sparkles size={22} color="var(--clr-accent)" />
               </div>
-              <div>
+              <div style={{ textAlign: 'left' }}>
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.1rem' }}>{t('Detalle de Limpieza')}</h3>
-                <p style={{ margin: 0, color: 'var(--clr-muted)', fontSize: '0.78rem' }}>#{selectedHistorialLog.log_id}</p>
+                <p style={{ margin: '0.15rem 0 0', color: 'var(--clr-muted)', fontSize: '0.8rem' }}>#{selectedHistorialLog.log_id}</p>
               </div>
             </div>
             <button
               onClick={() => setSelectedHistorialLog(null)}
-              style={{ background: 'none', border: 'none', color: 'var(--clr-muted)', cursor: 'pointer', fontSize: '1.4rem', lineHeight: 1 }}
-            >×</button>
+              className="premium-close-btn"
+              style={{ width: '32px', height: '32px', flexShrink: 0, marginLeft: '1rem' }}
+            >
+              <X size={16} />
+            </button>
           </div>
 
           {/* Datos */}
@@ -903,9 +947,11 @@ function LogDetailModal({ log, allLogs, onClose }) {
             {t('Cerrar')}
           </button>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
-    </>
+    </>,
+    document.body
   )
 }
 

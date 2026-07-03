@@ -313,6 +313,58 @@ router.get('/usuarios', async (_req, res) => {
   }
 })
 
+// Toggle estado activo/inactivo
+router.patch('/usuarios/:id/toggle', async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+    if (!user) return res.status(404).json({ ok: false, message: 'Usuario no encontrado.' })
+    user.estado = (user.estado || 'Activo').toLowerCase() === 'activo' ? 'Inactivo' : 'Activo'
+    user.updatedAt = new Date()
+    await user.save()
+    res.json({ ok: true, data: { status: user.estado } })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al cambiar estado del usuario.' })
+  }
+})
+
+// Actualizar datos de un usuario
+router.put('/usuarios/:id', async (req, res) => {
+  try {
+    const { name, email, role, status, department } = req.body
+    const updates = {
+      nombre:          name       || undefined,
+      correo:          email      || undefined,
+      rol:             role       || undefined,
+      estado:          status     || undefined,
+      etbDependencia:  department || undefined,
+      updatedAt:       new Date(),
+    }
+    // Remove undefined keys
+    Object.keys(updates).forEach(k => updates[k] === undefined && delete updates[k])
+
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { $set: updates },
+      { new: true, lean: true }
+    )
+    if (!user) return res.status(404).json({ ok: false, message: 'Usuario no encontrado.' })
+    res.json({ ok: true, data: user })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al actualizar usuario.', error: err.message })
+  }
+})
+
+// Eliminar un usuario
+router.delete('/usuarios/:id', async (req, res) => {
+  try {
+    const user = await User.findByIdAndDelete(req.params.id)
+    if (!user) return res.status(404).json({ ok: false, message: 'Usuario no encontrado.' })
+    res.json({ ok: true, message: 'Usuario eliminado correctamente.' })
+  } catch (err) {
+    res.status(500).json({ ok: false, message: 'Error al eliminar usuario.' })
+  }
+})
+
 // Use real login controller (LDAP + Mongo upsert)
 router.post('/login', (req, res) => {
   // authLogin handles LDAP verification, upsert and session

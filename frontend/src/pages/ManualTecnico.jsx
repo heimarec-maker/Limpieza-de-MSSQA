@@ -70,35 +70,35 @@ export default function ManualTecnico() {
             </div>
             <h1>Manual Técnico — Portal Gestión ETB</h1>
             <div className="manual-hero-meta">
-              <span><Calendar size={14} /> Última revisión: Junio 2026</span>
+              <span><Calendar size={14} /> Última revisión: Julio 2026</span>
               <span><Code size={14} /> FullStack JavaScript</span>
             </div>
           </div>
 
           <section id="arch" className="manual-section">
             <h2><span className="section-number">1</span> Resumen de Arquitectura</h2>
-            <p>El portal sigue un modelo de aplicación de una sola página (SPA) con un backend desacoplado que actúa como bridge hacia los sistemas legados de ETB (Oracle ASAP).</p>
+            <p>La aplicación sigue un modelo SPA con un backend desacoplado que actúa como puente hacia los sistemas legados de ETB. La capa de negocio se apoya en Oracle ASAP, mientras que la autenticación usa LDAP y la información de perfil se persiste en MongoDB.</p>
             
             <div className="tech-stack-grid">
               <div className="tech-card">
                 <Globe size={24} />
                 <h4>Frontend</h4>
-                <p>React 19 + Vite. Estilizado con CSS nativo y variables dinámicas (Glassmorphism).</p>
+                <p>React 19 + Vite, con rutas protegidas, contexto de usuario y tema, y componentes reutilizables para cada módulo.</p>
               </div>
               <div className="tech-card">
                 <Server size={24} />
                 <h4>Backend</h4>
-                <p>Node.js con Express. Gestión de API RESTful y middleware de autenticación.</p>
+                <p>Node.js con Express, middleware para sesiones y endpoints REST para Oracle, LDAP y auditoría.</p>
               </div>
               <div className="tech-card">
                 <Database size={24} />
-                <h4>Database</h4>
-                <p>Oracle Database 19c. Conectividad vía <code>node-oracledb</code> en modo Thin.</p>
+                <h4>Base de datos</h4>
+                <p>Oracle ASAP para inventario y limpieza, y MongoDB para usuarios, roles y registro de sesión.</p>
               </div>
               <div className="tech-card">
                 <Globe size={24} />
-                <h4>Integración</h4>
-                <p>SMW (Smart Web) a través de servicios SOAP (WSDL) para gestión de inventario geográfico.</p>
+                <h4>Integraciones</h4>
+                <p>SMW mediante SOAP para georreferenciación, consulta de RFS y liberación de recursos; MSS queda como módulo en desarrollo.</p>
               </div>
             </div>
           </section>
@@ -107,28 +107,27 @@ export default function ManualTecnico() {
             <h2><span className="section-number">2</span> Frontend (React)</h2>
             <p>Ubicación: <code>/frontend/src/</code></p>
             
-            <h3>Manejo de Estado</h3>
+            <h3>Manejo de estado</h3>
             <ul>
-              <li><strong>Context API:</strong> Utilizado para el estado global del usuario (UserContext) y preferencias de tema (ThemeContext).</li>
-              <li><strong>Hooks:</strong> Uso intensivo de <code>useState</code>, <code>useEffect</code> y <code>useCallback</code> para la gestión de ciclos de vida de componentes.</li>
+              <li><strong>Context API:</strong> usado para el estado global de usuario y preferencias de tema.</li>
+              <li><strong>ProtectedRoute:</strong> bloquea el acceso a rutas según rol y sesión activa.</li>
             </ul>
 
-            <h3>Servicios</h3>
-            <p>Los servicios se encuentran en <code>src/services/</code>. Se utiliza <code>fetch</code> nativo encapsulado para llamadas a la API.</p>
+            <h3>Servicios principales</h3>
             <ul>
-              <li><code>authService.js</code>: Gestión de login y persistencia en LocalStorage.</li>
-              <li><code>limpiezaDbService.js</code>: Comunicación con los endpoints de Oracle.</li>
-              <li><code>smwService.js</code>: Gestión de integración con SMW/SOAP.</li>
-              <li><code>activityLog.js</code>: Registro de acciones para auditoría.</li>
+              <li><code>authService.js</code>: autenticación y persistencia de sesión.</li>
+              <li><code>limpiezaDbService.js</code>: comunicación con la API para limpieza y consulta de equipos.</li>
+              <li><code>smwService.js</code>: integración con SOAP de SMW.</li>
+              <li><code>activityLog.js</code>: registro y exportación de actividad para administración.</li>
             </ul>
           </section>
 
           <section id="backend" className="manual-section">
             <h2><span className="section-number">3</span> Backend (Express)</h2>
             <p>Ubicación: <code>/backend/</code></p>
-            <p>El servidor Express (puerto 3001) gestiona las peticiones del frontend y las traduce a consultas SQL o llamadas a procedimientos PL/SQL.</p>
+            <p>El servidor Express recibe peticiones del frontend, valida usuarios, ejecuta lógica de negocio y traduce operaciones a consultas Oracle o llamadas SOAP.</p>
 
-            <h3>Endpoints Principales</h3>
+            <h3>Endpoints principales</h3>
             <div className="manual-table-wrap">
               <table className="manual-table">
                 <thead>
@@ -142,32 +141,32 @@ export default function ManualTecnico() {
                   <tr>
                     <td><code>GET</code></td>
                     <td><code>/api/equipos/:serial</code></td>
-                    <td>Consulta estado actual en <code>ASAP.equipment</code>.</td>
+                    <td>Consulta el estado del equipo en <code>ASAP.equipment</code>.</td>
                   </tr>
                   <tr>
                     <td><code>POST</code></td>
                     <td><code>/api/limpieza/:serial</code></td>
-                    <td>Ejecuta el flujo de 4 pasos de limpieza.</td>
+                    <td>Ejecuta el flujo de limpieza en 4 etapas.</td>
                   </tr>
                   <tr>
                     <td><code>GET</code></td>
                     <td><code>/api/actividad</code></td>
-                    <td>Recupera logs unificados para el panel admin.</td>
+                    <td>Recupera logs unificados para el panel administrativo.</td>
                   </tr>
                   <tr>
                     <td><code>POST</code></td>
                     <td><code>/api/login</code></td>
-                    <td>Valida credenciales y estado de cuenta (Activo/Inactivo).</td>
+                    <td>Valida credenciales LDAP y carga/actualiza el usuario en MongoDB.</td>
                   </tr>
                   <tr>
                     <td><code>POST</code></td>
                     <td><code>/api/smw/consultar</code></td>
-                    <td>Consulta dirección y RFS activos mediante SOAP.</td>
+                    <td>Consulta direcciones y recursos RFS mediante SOAP.</td>
                   </tr>
                   <tr>
                     <td><code>POST</code></td>
                     <td><code>/api/smw/limpiar</code></td>
-                    <td>Libera recursos en el inventario SMW.</td>
+                    <td>Libera recursos asociados a una dirección en SMW.</td>
                   </tr>
                 </tbody>
               </table>
@@ -175,36 +174,36 @@ export default function ManualTecnico() {
           </section>
 
           <section id="oracle" className="manual-section">
-            <h2><span className="section-number">4</span> Base de Datos Oracle</h2>
-            <p>El sistema se conecta al esquema <code>ASAP</code> de la base de datos central de ETB.</p>
+            <h2><span className="section-number">4</span> Base de Datos y Modelo de Datos</h2>
+            <p>El sistema se conecta al esquema <code>ASAP</code> de la base de datos central para consultar y limpiar equipos. Además, usa MongoDB para persistir usuarios, roles y estado de sesión.</p>
             
-            <h3>Tablas Críticas</h3>
+            <h3>Tablas críticas</h3>
             <ul>
-              <li><strong>ASAP.equipment:</strong> Tabla maestra de equipos (Serial, MAC, Estado Disponibilidad).</li>
-              <li><strong>ASAP.equip_ca_value:</strong> Atributos extendidos del equipo (Estado CPE).</li>
-              <li><strong>ASAP.serv_item_value:</strong> Instancias de servicios vinculadas a equipos.</li>
-              <li><strong>ASAP.serv_req_si_value:</strong> Solicitudes de servicio en curso.</li>
+              <li><strong>ASAP.equipment:</strong> tabla maestra de equipos.</li>
+              <li><strong>ASAP.equip_ca_value:</strong> atributos extendidos del equipo, incluyendo estado CPE.</li>
+              <li><strong>ASAP.serv_item_value:</strong> referencias de servicio vinculadas a equipos.</li>
+              <li><strong>ASAP.serv_req_si_value:</strong> solicitudes de servicio asociadas al serial.</li>
             </ul>
 
-            <h3>Procedimientos PL/SQL</h3>
-            <p>El proceso de borrado físico y lógico se delega al procedimiento:</p>
+            <h3>Procedimiento principal</h3>
+            <p>El borrado de equipo se delega a:</p>
             <div className="manual-code-block">ASAP.BORRADO_EQUIPOS(ASAP.ARRAY_EQUIPOS(serial))</div>
           </section>
           
           <section id="smw" className="manual-section">
             <h2><span className="section-number">5</span> Integración SMW (SOAP)</h2>
-            <p>La aplicación interactúa con el inventario SMW (Smart Web) mediante servicios SOAP 1.2 para la gestión de recursos de red.</p>
+            <p>El módulo SMW interactúa con servicios SOAP para georreferenciar direcciones y liberar recursos físicos.</p>
             
             <div className="connection-info">
               <div className="connection-card">
                 <h5>Georreferenciación</h5>
                 <p>Endpoint: <code>SMW_GEOREF_URL</code></p>
-                <small>Obtiene el <code>CodigoDireccion</code> a partir de la dirección normalizada.</small>
+                <small>Obtiene el <code>CodigoDireccion</code> a partir de una dirección normalizada.</small>
               </div>
               <div className="connection-card">
                 <h5>Inventario RFS</h5>
                 <p>Endpoint: <code>SMW_RFS_URL</code></p>
-                <small>Consulta todos los recursos físicos asociados a la dirección.</small>
+                <small>Consulta los recursos físicos asociados a la dirección.</small>
               </div>
               <div className="connection-card">
                 <h5>Liberación M6</h5>
@@ -215,58 +214,55 @@ export default function ManualTecnico() {
           </section>
 
           <section id="flujos" className="manual-section">
-            <h2><span className="section-number">5</span> Flujos Lógicos</h2>
+            <h2><span className="section-number">6</span> Flujos Lógicos</h2>
             
-            <h3>Algoritmo de Limpieza (Post /api/limpieza)</h3>
+            <h3>Algoritmo de limpieza</h3>
             <ol>
-              <li><strong>Validación (OP1):</strong> Consulta si el serial existe y su estado actual.</li>
-              <li><strong>Filtro de Estado:</strong> Si el estado es LIBRE/RETIRADO, cancela con advertencia.</li>
-              <li><strong>Borrado (OP2):</strong> Ejecuta <code>BORRADO_EQUIPOS</code> en Oracle.</li>
-              <li><strong>Limpieza de Ítems (OP3):</strong> Ejecuta <code>UPDATE serv_item_value SET valid_value = valid_value || '*'</code>.</li>
-              <li><strong>Limpieza de Requerimientos (OP4):</strong> Ejecuta <code>UPDATE serv_req_si_value SET valid_value = valid_value || '*'</code>.</li>
-              <li><strong>Logging:</strong> Inserta el resultado de cada etapa en la tabla local de logs del servidor.</li>
+              <li><strong>Validación:</strong> se consulta el estado del equipo y se confirma serial/MAC.</li>
+              <li><strong>Filtro de estado:</strong> si ya aparece como libre o retirado, el sistema corta el proceso con advertencia.</li>
+              <li><strong>Borrado:</strong> se ejecuta <code>BORRADO_EQUIPOS</code> en Oracle.</li>
+              <li><strong>Serv. Item:</strong> se actualizan los registros relacionados en <code>serv_item_value</code>.</li>
+              <li><strong>Serv. Req:</strong> se actualizan los registros ligados en <code>serv_req_si_value</code>.</li>
+              <li><strong>Auditoría:</strong> cada paso genera evidencia para el panel de actividad.</li>
             </ol>
 
-            <h3 style={{ marginTop: '2rem' }}>Flujo de Limpieza SMW (Smart Web)</h3>
+            <h3 style={{ marginTop: '2rem' }}>Flujo de auditoría administrativa</h3>
             <ol>
-              <li><strong>Georreferenciación:</strong> Se envía la dirección para obtener el ID interno de SMW.</li>
-              <li><strong>Descubrimiento:</strong> Se solicitan los RFS vinculados al ID de dirección.</li>
-              <li><strong>Validación de Recursos:</strong> Se filtran los RFS activos (Identificador RFS_).</li>
-              <li><strong>Liberación:</strong> Se envía comando SOAP <code>M6LiberarRecursos</code> para cada RFS encontrado.</li>
+              <li>Se fusionan logs locales y provenientes de Oracle.</li>
+              <li>Se ordenan por timestamp y se agrupan para la vista del panel.</li>
+              <li>El administrador puede filtrar por usuario, acción, resultado y texto libre.</li>
             </ol>
           </section>
 
           <section id="deploy" className="manual-section">
-            <h2><span className="section-number">6</span> Instalación y Despliegue</h2>
+            <h2><span className="section-number">7</span> Instalación y Despliegue</h2>
             
-            <h3>Requisitos de Entorno</h3>
-            <p>Variables requeridas en el archivo <code>.env</code>:</p>
+            <h3>Variables de entorno</h3>
+            <p>Las variables requeridas se configuran en <code>.env</code>:</p>
             <ul>
-              <li><code>DB_USER</code>: Usuario esquema Oracle.</li>
-              <li><code>DB_PASSWORD</code>: Credencial base de datos.</li>
-              <li><code>DB_CONNECTION_STRING</code>: Host, puerto y SID/Service Name.</li>
-              <li><code>SMW_GEOREF_URL</code>: Endpoint del servicio de Georreferenciación SMW.</li>
-              <li><code>SMW_RFS_URL</code>: Endpoint del servicio de consulta de RFS SMW.</li>
-              <li><code>SMW_LIBERAR_URL</code>: Endpoint del servicio de liberación de recursos SMW.</li>
-              <li><code>PORT</code>: Puerto del servidor (default 3001).</li>
+              <li><code>DB_USER</code>, <code>DB_PASSWORD</code> y <code>DB_CONNECTION_STRING</code> para Oracle.</li>
+              <li><code>SMW_GEOREF_URL</code>, <code>SMW_RFS_URL</code> y <code>SMW_LIBERAR_URL</code> para SOAP.</li>
+              <li><code>LDAP_URL</code>, <code>LDAP_ADMIN_DN</code>, <code>LDAP_ADMIN_PASSWORD</code> y <code>LDAP_USER_SEARCH_BASE</code> para autenticación.</li>
+              <li><code>PORT</code> para el backend (por defecto 3001).</li>
             </ul>
 
             <h3>Scripts de NPM</h3>
             <ul>
-              <li><code>npm start</code>: Inicia frontend y backend simultáneamente (Concurrently).</li>
-              <li><code>npm run server</code>: Inicia solo la API Node.js.</li>
-              <li><code>npm run dev</code>: Inicia solo el entorno de desarrollo Vite.</li>
-              <li><code>npm run build</code>: Genera el bundle de producción del frontend.</li>
+              <li><code>npm start</code>: levanta frontend y backend simultáneamente.</li>
+              <li><code>npm run server</code>: inicia solo la API.</li>
+              <li><code>npm run dev</code>: inicia solo Vite.</li>
+              <li><code>npm run build</code>: genera el bundle de producción.</li>
             </ul>
           </section>
 
           <section id="seguridad" className="manual-section">
-            <h2><span className="section-number">7</span> Seguridad y Sesiones</h2>
-            <p>La seguridad se implementa en múltiples capas:</p>
+            <h2><span className="section-number">8</span> Seguridad y Sesiones</h2>
+            <p>La seguridad se implementa en varias capas:</p>
             <ul>
-              <li><strong>Cross-Origin Resource Sharing (CORS):</strong> Restringido para aceptar peticiones solo desde el dominio del portal.</li>
-              <li><strong>Inactivity Guard:</strong> El backend valida en cada login si el usuario está marcado como <code>Inactivo</code>. El frontend detecta este estado y fuerza el cierre de sesión mediante el componente <code>ProtectedRoute</code>.</li>
-              <li><strong>Audit Log:</strong> Todas las transacciones fallidas o exitosas se registran con el usuario, timestamp y etapa exacta del error.</li>
+              <li><strong>Autenticación LDAP:</strong> valida identidad antes de autorizar el acceso.</li>
+              <li><strong>Control por roles:</strong> las rutas y módulos se protegen con <code>ProtectedRoute</code>.</li>
+              <li><strong>Sesiones de usuario:</strong> los datos de sesión se almacenan server-side y se usan para verificar acceso.</li>
+              <li><strong>Auditoría:</strong> cada accion importante queda registrada con usuario, fecha y resultado.</li>
             </ul>
           </section>
         </div>

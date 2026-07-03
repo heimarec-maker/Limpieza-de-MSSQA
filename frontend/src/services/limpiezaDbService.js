@@ -97,3 +97,15 @@ export async function getDBActivityLogs() {
     return []
   }
 }
+
+// ─── Usuarios de la Base de Datos ─────────────────────────────────────────────
+export async function getUsuarios() {
+  try {
+    const res = await fetch(`${API}/usuarios`)
+    const json = await res.json()
+    return json.ok ? json.data : []
+  } catch {
+    return []
+  }
+}
+

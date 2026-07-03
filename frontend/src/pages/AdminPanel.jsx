@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import {
   ShieldCheck, Activity, Sparkles, PlusCircle,
@@ -285,7 +286,7 @@ export default function AdminPanel() {
         </div>
 
         {/* ── Confirmación de limpieza ── */}
-        {showConfirmClear && (
+        {showConfirmClear && createPortal(
           <div className="confirm-overlay" onClick={() => setShowConfirmClear(false)}>
             <div className="confirm-dialog glass-card" onClick={e => e.stopPropagation()}>
               <AlertTriangle size={40} className="confirm-icon" />
@@ -300,7 +301,8 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         {/* ── Contador de resultados ── */}

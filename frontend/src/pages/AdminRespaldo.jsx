@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import SubPage from '../components/SubPage';
 import {
@@ -235,7 +236,7 @@ export default function AdminRespaldo() {
       </div>
 
       {/* ── Modal Restaurar ── */}
-      {restoreTarget && (
+      {restoreTarget && createPortal(
         <div className="confirm-overlay" onClick={() => setRestoreTarget(null)}>
           <div className="confirm-dialog glass-card" onClick={e => e.stopPropagation()}>
             <RefreshCw size={40} style={{ color:'#3b82f6' }} />
@@ -253,7 +254,8 @@ export default function AdminRespaldo() {
               <button className="btn btn-accent" onClick={() => setRestoreTarget(null)}>{t('Cancelar')}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </SubPage>
   );
