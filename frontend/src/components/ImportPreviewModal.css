@@ -9,6 +9,8 @@
   justify-content: center;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
+  padding: 2rem 1.5rem;
+  overflow-y: auto;
   animation: fade-in 0.2s ease;
 }
 
@@ -25,6 +27,7 @@
   background: var(--clr-card);
   border: 1px solid var(--clr-border);
   border-radius: 16px;
+  margin: auto;
   box-shadow: 0 10px 40px rgba(0,0,0,0.5);
   animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;

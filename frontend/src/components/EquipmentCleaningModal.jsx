@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, Monitor, Cpu, Sparkles, AlertTriangle, CheckCircle, Info, RefreshCw, Activity, Database } from 'lucide-react'
 import { ejecutarLimpieza, consultarEquipo } from '../services/limpiezaDbService'
@@ -91,7 +92,9 @@ export default function EquipmentCleaningModal({ isOpen, equipment, initialMode 
   const isAlreadyClean = ['LIBRE', 'DISPONIBLE', 'RETIRADO'].includes(estado)
   const infoEquipo = equipment.model || equipment.tipo || equipment.equipment_name || t('Equipo Standard')
 
-  return (
+  if (!isOpen) return null
+
+  return createPortal(
     <div className="equipment-modal-overlay" onClick={onClose}>
       <div 
         className="equipment-modal-dialog glass-card animate-zoom"
@@ -284,6 +287,7 @@ export default function EquipmentCleaningModal({ isOpen, equipment, initialMode 
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

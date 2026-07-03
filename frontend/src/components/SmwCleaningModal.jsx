@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { X, MapPin, Hash, BarChart3, Trash2 } from 'lucide-react'
 import './SmwCleaningModal.css'
@@ -14,7 +15,7 @@ export default function SmwCleaningModal({ data, isOpen, onClose, onClean }) {
 
   if (!isOpen || !data) return null
 
-  return (
+  return createPortal(
     <div className="confirm-overlay" onClick={onClose}>
       <div
         className="smw-modal-dialog glass-card"
@@ -111,6 +112,7 @@ export default function SmwCleaningModal({ data, isOpen, onClose, onClean }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

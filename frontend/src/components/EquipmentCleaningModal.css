@@ -8,7 +8,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
     animation: fadeInModal 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -23,6 +24,7 @@
     background: rgba(17, 24, 39, 0.75);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
+    margin: auto;
     box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 194, 255, 0.05);
     overflow: hidden;
 }

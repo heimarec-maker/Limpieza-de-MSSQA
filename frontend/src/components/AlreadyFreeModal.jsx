@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck, X, CheckCircle2, Info } from 'lucide-react'
 import './AlreadyFreeModal.css'
@@ -7,7 +8,7 @@ export default function AlreadyFreeModal({ isOpen, serial, estado, onClose }) {
 
   if (!isOpen) return null
 
-  return (
+  return createPortal(
     <div className="afm-overlay" onClick={onClose}>
       <div className="afm-dialog" onClick={e => e.stopPropagation()}>
 
@@ -54,6 +55,7 @@ export default function AlreadyFreeModal({ isOpen, serial, estado, onClose }) {
         </button>
 
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
