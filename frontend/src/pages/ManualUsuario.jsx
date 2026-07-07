@@ -12,12 +12,15 @@ import {
   Terminal,
 } from "lucide-react";
 import SubPage from "../components/SubPage";
+import { useUser } from "../context/UserContext";
 import "./ManualUsuario.css";
 
 export default function ManualUsuario() {
   const { t } = useTranslation();
+  const { currentUser } = useUser();
   const [activeSection, setActiveSection] = useState("intro");
   const [showBackTop, setShowBackTop] = useState(false);
+  const isAdmin = currentUser?.role === "admin";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -194,9 +197,11 @@ export default function ManualUsuario() {
               <span>
                 <Code size={14} /> React + Vite + Express + MongoDB + Oracle
               </span>
-              <span className="manual-link-secondary">
-                <Terminal size={14} /> <a href="/manual-tecnico">Ver Manual Técnico</a>
-              </span>
+              {isAdmin && (
+                <span className="manual-link-secondary">
+                  <Terminal size={14} /> <a href="/manual-tecnico">Ver Manual Técnico</a>
+                </span>
+              )}
             </div>
           </div>
 

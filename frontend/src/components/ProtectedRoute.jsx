@@ -10,7 +10,7 @@ import { useUser } from '../context/UserContext'
  * @param {React.ReactNode} props.children - Componente a renderizar si el acceso es válido.
  * @param {string} [props.requiredRole] - Rol requerido (ej: 'admin'). Si no se especifica, solo valida autenticación.
  */
-export default function ProtectedRoute({ children, requiredRole }) {
+export default function ProtectedRoute({ children, requiredRole, fallbackPath = '/home' }) {
   const { currentUser } = useUser()
 
   // Sin sesión → redirigir al login
@@ -18,9 +18,9 @@ export default function ProtectedRoute({ children, requiredRole }) {
     return <Navigate to="/" replace />
   }
 
-  // Si requiere un rol específico y no lo tiene → redirigir al home
+  // Si requiere un rol específico y no lo tiene → redirigir al home o a la ruta indicada
   if (requiredRole && currentUser.role !== requiredRole) {
-    return <Navigate to="/home" replace />
+    return <Navigate to={fallbackPath} replace />
   }
 
   return children

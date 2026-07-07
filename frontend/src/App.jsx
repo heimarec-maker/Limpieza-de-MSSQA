@@ -50,7 +50,7 @@ function AppContent() {
           <Route path="/limpieza-mss" element={<ProtectedRoute><LimpiezaMss /></ProtectedRoute>} />
           <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
           <Route path="/manual" element={<ProtectedRoute><ManualUsuario /></ProtectedRoute>} />
-          <Route path="/manual-tecnico" element={<ProtectedRoute><ManualTecnico /></ProtectedRoute>} />
+          <Route path="/manual-tecnico" element={<ProtectedRoute requiredRole="admin" fallbackPath="/manual"><ManualTecnico /></ProtectedRoute>} />
           <Route path="/seguridad" element={<ProtectedRoute><PoliticasSeguridad /></ProtectedRoute>} />
           <Route path="/soporte" element={<ProtectedRoute><SoporteTecnico /></ProtectedRoute>} />
 

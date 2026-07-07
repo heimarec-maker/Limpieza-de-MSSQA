@@ -1,17 +1,20 @@
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { ShieldCheck, FileText, HelpCircle, Mail, Phone, Network, Terminal } from 'lucide-react'
+import { useUser } from '../context/UserContext'
 import './Footer.css'
 
 export default function Footer() {
   const { t } = useTranslation()
+  const { currentUser } = useUser()
   const currentYear = new Date().getFullYear()
+  const isAdmin = currentUser?.role === 'admin'
 
   // Definición de datos para iterar, facilitando el mantenimiento y la escalabilidad
   const quickLinks = [
     { icon: HelpCircle, label: 'Soporte Técnico', href: '/soporte', isRouterLink: true },
     { icon: FileText, label: 'Manual de Usuario', href: '/manual', isRouterLink: true },
-    { icon: Terminal, label: 'Manual Técnico', href: '/manual-tecnico', isRouterLink: true },
+    ...(isAdmin ? [{ icon: Terminal, label: 'Manual Técnico', href: '/manual-tecnico', isRouterLink: true }] : []),
     { icon: ShieldCheck, label: 'Políticas de Seguridad', href: '/seguridad', isRouterLink: true }
   ]
 
